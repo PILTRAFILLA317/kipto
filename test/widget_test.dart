@@ -54,7 +54,7 @@ void main() {
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Local mode'), findsOneWidget);
+    expect(find.text('Cloud sync not configured'), findsOneWidget);
 
     await tester.tap(find.text('Inbox'));
     await tester.pumpAndSettle();

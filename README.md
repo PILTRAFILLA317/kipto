@@ -4,8 +4,10 @@ Kipto (`keep + capture`) is an offline-first inbox for screenshots. A screenshot
 and everything known about it are represented as one `SavedItem`, centered on
 the user's pending intent rather than on the image file.
 
-Phase 2 runs fully offline with Flutter, Riverpod, go_router, Drift, SQLite, and
-`photo_manager`. It requests image-only photo access in context, discovers real
+Phase 3 keeps the Phase 2 offline-first Flutter experience and adds anonymous
+Supabase Auth plus metadata synchronization. Drift remains the only database
+read by the UI; Supabase is reached only through `SyncService` and a remote data
+source. The app requests image-only photo access in context, discovers real
 screenshots, imports metadata in pages, and resolves thumbnails lazily. Inbox,
 Library, local Search, Settings, item detail actions, reminders, and soft delete
 continue to use the same local persistence boundary.
@@ -16,11 +18,18 @@ removes only the known deterministic Phase 1 seed IDs.
 
 ## Run locally
 
+Copy the safe example configuration, fill it with the project URL and
+publishable key (never a secret or service-role key), then run:
+
 ```sh
+cp config/dev.example.json config/dev.json
 flutter pub get
 dart run build_runner build
-flutter run
+flutter run --dart-define-from-file=config/dev.json
 ```
+
+Without `config/dev.json`, debug and test launches stay in local-only mode and
+Settings shows that cloud sync is not configured.
 
 Demo data is inserted idempotently in debug builds only. Release builds never
 seed demo content.
@@ -41,6 +50,24 @@ dart run build_runner build
 
 See [Architecture](docs/architecture.md) for the persistence model, dependency
 rules, local/cloud field boundary, and planned extension points.
+
+## Supabase setup (Phase 3)
+
+1. Create or link a Supabase project and enable Anonymous Sign-Ins under Auth.
+2. Apply the versioned migration with `supabase db push`.
+3. Put only `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in
+   `config/dev.json`.
+4. Start Flutter with `--dart-define-from-file=config/dev.json`.
+
+The migration creates `saved_items`, `reminders`, and `devices`, strict
+owner-only RLS/grants, incremental server timestamps, and private per-user
+Realtime Broadcast invalidations. It creates no Storage bucket or Edge
+Function. Cloud sync transfers metadata only—never screenshot or thumbnail
+bytes.
+
+Anonymous sessions are persisted by `supabase_flutter`. They sync reliably on
+the current installation but cannot yet be restored on another device. A later
+phase will add identity linking.
 
 ## Test with real screenshots
 

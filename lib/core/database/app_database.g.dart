@@ -325,6 +325,17 @@ class $SavedItemsTable extends SavedItems
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _remoteServerUpdatedAtMeta =
+      const VerificationMeta('remoteServerUpdatedAt');
+  @override
+  late final GeneratedColumn<DateTime> remoteServerUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'remote_server_updated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -356,6 +367,7 @@ class $SavedItemsTable extends SavedItems
     previewCachePath,
     syncStatus,
     lastSyncedAt,
+    remoteServerUpdatedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -535,6 +547,15 @@ class $SavedItemsTable extends SavedItems
         ),
       );
     }
+    if (data.containsKey('remote_server_updated_at')) {
+      context.handle(
+        _remoteServerUpdatedAtMeta,
+        remoteServerUpdatedAt.isAcceptableOrUnknown(
+          data['remote_server_updated_at']!,
+          _remoteServerUpdatedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -672,6 +693,10 @@ class $SavedItemsTable extends SavedItems
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_synced_at'],
       ),
+      remoteServerUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}remote_server_updated_at'],
+      ),
     );
   }
 
@@ -724,6 +749,7 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
   final String? previewCachePath;
   final SyncStatus syncStatus;
   final DateTime? lastSyncedAt;
+  final DateTime? remoteServerUpdatedAt;
   const SavedItemRow({
     required this.id,
     this.ownerId,
@@ -754,6 +780,7 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
     this.previewCachePath,
     required this.syncStatus,
     this.lastSyncedAt,
+    this.remoteServerUpdatedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -839,6 +866,11 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
     if (!nullToAbsent || lastSyncedAt != null) {
       map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
     }
+    if (!nullToAbsent || remoteServerUpdatedAt != null) {
+      map['remote_server_updated_at'] = Variable<DateTime>(
+        remoteServerUpdatedAt,
+      );
+    }
     return map;
   }
 
@@ -901,6 +933,9 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
       lastSyncedAt: lastSyncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncedAt),
+      remoteServerUpdatedAt: remoteServerUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteServerUpdatedAt),
     );
   }
 
@@ -943,6 +978,9 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
       previewCachePath: serializer.fromJson<String?>(json['previewCachePath']),
       syncStatus: serializer.fromJson<SyncStatus>(json['syncStatus']),
       lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      remoteServerUpdatedAt: serializer.fromJson<DateTime?>(
+        json['remoteServerUpdatedAt'],
+      ),
     );
   }
   @override
@@ -980,6 +1018,9 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
       'previewCachePath': serializer.toJson<String?>(previewCachePath),
       'syncStatus': serializer.toJson<SyncStatus>(syncStatus),
       'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'remoteServerUpdatedAt': serializer.toJson<DateTime?>(
+        remoteServerUpdatedAt,
+      ),
     };
   }
 
@@ -1013,6 +1054,7 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
     Value<String?> previewCachePath = const Value.absent(),
     SyncStatus? syncStatus,
     Value<DateTime?> lastSyncedAt = const Value.absent(),
+    Value<DateTime?> remoteServerUpdatedAt = const Value.absent(),
   }) => SavedItemRow(
     id: id ?? this.id,
     ownerId: ownerId.present ? ownerId.value : this.ownerId,
@@ -1047,6 +1089,9 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
         : this.previewCachePath,
     syncStatus: syncStatus ?? this.syncStatus,
     lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+    remoteServerUpdatedAt: remoteServerUpdatedAt.present
+        ? remoteServerUpdatedAt.value
+        : this.remoteServerUpdatedAt,
   );
   SavedItemRow copyWithCompanion(SavedItemsCompanion data) {
     return SavedItemRow(
@@ -1103,6 +1148,9 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
       lastSyncedAt: data.lastSyncedAt.present
           ? data.lastSyncedAt.value
           : this.lastSyncedAt,
+      remoteServerUpdatedAt: data.remoteServerUpdatedAt.present
+          ? data.remoteServerUpdatedAt.value
+          : this.remoteServerUpdatedAt,
     );
   }
 
@@ -1137,7 +1185,8 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
           ..write('originalAvailable: $originalAvailable, ')
           ..write('previewCachePath: $previewCachePath, ')
           ..write('syncStatus: $syncStatus, ')
-          ..write('lastSyncedAt: $lastSyncedAt')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('remoteServerUpdatedAt: $remoteServerUpdatedAt')
           ..write(')'))
         .toString();
   }
@@ -1173,6 +1222,7 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
     previewCachePath,
     syncStatus,
     lastSyncedAt,
+    remoteServerUpdatedAt,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1206,7 +1256,8 @@ class SavedItemRow extends DataClass implements Insertable<SavedItemRow> {
           other.originalAvailable == this.originalAvailable &&
           other.previewCachePath == this.previewCachePath &&
           other.syncStatus == this.syncStatus &&
-          other.lastSyncedAt == this.lastSyncedAt);
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.remoteServerUpdatedAt == this.remoteServerUpdatedAt);
 }
 
 class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
@@ -1239,6 +1290,7 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
   final Value<String?> previewCachePath;
   final Value<SyncStatus> syncStatus;
   final Value<DateTime?> lastSyncedAt;
+  final Value<DateTime?> remoteServerUpdatedAt;
   final Value<int> rowid;
   const SavedItemsCompanion({
     this.id = const Value.absent(),
@@ -1270,6 +1322,7 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
     this.previewCachePath = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
+    this.remoteServerUpdatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SavedItemsCompanion.insert({
@@ -1302,6 +1355,7 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
     this.previewCachePath = const Value.absent(),
     required SyncStatus syncStatus,
     this.lastSyncedAt = const Value.absent(),
+    this.remoteServerUpdatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -1342,6 +1396,7 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
     Expression<String>? previewCachePath,
     Expression<String>? syncStatus,
     Expression<DateTime>? lastSyncedAt,
+    Expression<DateTime>? remoteServerUpdatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1374,6 +1429,8 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
       if (previewCachePath != null) 'preview_cache_path': previewCachePath,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (remoteServerUpdatedAt != null)
+        'remote_server_updated_at': remoteServerUpdatedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1408,6 +1465,7 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
     Value<String?>? previewCachePath,
     Value<SyncStatus>? syncStatus,
     Value<DateTime?>? lastSyncedAt,
+    Value<DateTime?>? remoteServerUpdatedAt,
     Value<int>? rowid,
   }) {
     return SavedItemsCompanion(
@@ -1440,6 +1498,8 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
       previewCachePath: previewCachePath ?? this.previewCachePath,
       syncStatus: syncStatus ?? this.syncStatus,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      remoteServerUpdatedAt:
+          remoteServerUpdatedAt ?? this.remoteServerUpdatedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1548,6 +1608,11 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
     if (lastSyncedAt.present) {
       map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
     }
+    if (remoteServerUpdatedAt.present) {
+      map['remote_server_updated_at'] = Variable<DateTime>(
+        remoteServerUpdatedAt.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1586,6 +1651,7 @@ class SavedItemsCompanion extends UpdateCompanion<SavedItemRow> {
           ..write('previewCachePath: $previewCachePath, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('remoteServerUpdatedAt: $remoteServerUpdatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1705,6 +1771,28 @@ class $RemindersTable extends Reminders
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<SyncStatus>($RemindersTable.$convertersyncStatus);
+  static const VerificationMeta _lastSyncedAtMeta = const VerificationMeta(
+    'lastSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+    'last_synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remoteServerUpdatedAtMeta =
+      const VerificationMeta('remoteServerUpdatedAt');
+  @override
+  late final GeneratedColumn<DateTime> remoteServerUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'remote_server_updated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1717,6 +1805,8 @@ class $RemindersTable extends Reminders
     updatedAt,
     deletedAt,
     syncStatus,
+    lastSyncedAt,
+    remoteServerUpdatedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1791,6 +1881,24 @@ class $RemindersTable extends Reminders
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+        _lastSyncedAtMeta,
+        lastSyncedAt.isAcceptableOrUnknown(
+          data['last_synced_at']!,
+          _lastSyncedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remote_server_updated_at')) {
+      context.handle(
+        _remoteServerUpdatedAtMeta,
+        remoteServerUpdatedAt.isAcceptableOrUnknown(
+          data['remote_server_updated_at']!,
+          _remoteServerUpdatedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1844,6 +1952,14 @@ class $RemindersTable extends Reminders
           data['${effectivePrefix}sync_status'],
         )!,
       ),
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_synced_at'],
+      ),
+      remoteServerUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}remote_server_updated_at'],
+      ),
     );
   }
 
@@ -1869,6 +1985,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final SyncStatus syncStatus;
+  final DateTime? lastSyncedAt;
+  final DateTime? remoteServerUpdatedAt;
   const ReminderRow({
     required this.id,
     this.ownerId,
@@ -1880,6 +1998,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.syncStatus,
+    this.lastSyncedAt,
+    this.remoteServerUpdatedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1908,6 +2028,14 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
         $RemindersTable.$convertersyncStatus.toSql(syncStatus),
       );
     }
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    if (!nullToAbsent || remoteServerUpdatedAt != null) {
+      map['remote_server_updated_at'] = Variable<DateTime>(
+        remoteServerUpdatedAt,
+      );
+    }
     return map;
   }
 
@@ -1929,6 +2057,12 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           ? const Value.absent()
           : Value(deletedAt),
       syncStatus: Value(syncStatus),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+      remoteServerUpdatedAt: remoteServerUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteServerUpdatedAt),
     );
   }
 
@@ -1948,6 +2082,10 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       syncStatus: serializer.fromJson<SyncStatus>(json['syncStatus']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      remoteServerUpdatedAt: serializer.fromJson<DateTime?>(
+        json['remoteServerUpdatedAt'],
+      ),
     );
   }
   @override
@@ -1964,6 +2102,10 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'syncStatus': serializer.toJson<SyncStatus>(syncStatus),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'remoteServerUpdatedAt': serializer.toJson<DateTime?>(
+        remoteServerUpdatedAt,
+      ),
     };
   }
 
@@ -1978,6 +2120,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     SyncStatus? syncStatus,
+    Value<DateTime?> lastSyncedAt = const Value.absent(),
+    Value<DateTime?> remoteServerUpdatedAt = const Value.absent(),
   }) => ReminderRow(
     id: id ?? this.id,
     ownerId: ownerId.present ? ownerId.value : this.ownerId,
@@ -1989,6 +2133,10 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     syncStatus: syncStatus ?? this.syncStatus,
+    lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+    remoteServerUpdatedAt: remoteServerUpdatedAt.present
+        ? remoteServerUpdatedAt.value
+        : this.remoteServerUpdatedAt,
   );
   ReminderRow copyWithCompanion(RemindersCompanion data) {
     return ReminderRow(
@@ -2008,6 +2156,12 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+      remoteServerUpdatedAt: data.remoteServerUpdatedAt.present
+          ? data.remoteServerUpdatedAt.value
+          : this.remoteServerUpdatedAt,
     );
   }
 
@@ -2023,7 +2177,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
-          ..write('syncStatus: $syncStatus')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('remoteServerUpdatedAt: $remoteServerUpdatedAt')
           ..write(')'))
         .toString();
   }
@@ -2040,6 +2196,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
     updatedAt,
     deletedAt,
     syncStatus,
+    lastSyncedAt,
+    remoteServerUpdatedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -2054,7 +2212,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
-          other.syncStatus == this.syncStatus);
+          other.syncStatus == this.syncStatus &&
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.remoteServerUpdatedAt == this.remoteServerUpdatedAt);
 }
 
 class RemindersCompanion extends UpdateCompanion<ReminderRow> {
@@ -2068,6 +2228,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<SyncStatus> syncStatus;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<DateTime?> remoteServerUpdatedAt;
   final Value<int> rowid;
   const RemindersCompanion({
     this.id = const Value.absent(),
@@ -2080,6 +2242,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.remoteServerUpdatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RemindersCompanion.insert({
@@ -2093,6 +2257,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     required SyncStatus syncStatus,
+    this.lastSyncedAt = const Value.absent(),
+    this.remoteServerUpdatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        savedItemId = Value(savedItemId),
@@ -2112,6 +2278,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? syncStatus,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<DateTime>? remoteServerUpdatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2125,6 +2293,9 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (remoteServerUpdatedAt != null)
+        'remote_server_updated_at': remoteServerUpdatedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2140,6 +2311,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<SyncStatus>? syncStatus,
+    Value<DateTime?>? lastSyncedAt,
+    Value<DateTime?>? remoteServerUpdatedAt,
     Value<int>? rowid,
   }) {
     return RemindersCompanion(
@@ -2153,6 +2326,9 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       syncStatus: syncStatus ?? this.syncStatus,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      remoteServerUpdatedAt:
+          remoteServerUpdatedAt ?? this.remoteServerUpdatedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2194,6 +2370,14 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
         $RemindersTable.$convertersyncStatus.toSql(syncStatus.value),
       );
     }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (remoteServerUpdatedAt.present) {
+      map['remote_server_updated_at'] = Variable<DateTime>(
+        remoteServerUpdatedAt.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2213,6 +2397,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('remoteServerUpdatedAt: $remoteServerUpdatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3328,6 +3514,574 @@ class ScreenshotImportStatesCompanion
   }
 }
 
+class $CloudSyncStatesTable extends CloudSyncStates
+    with TableInfo<$CloudSyncStatesTable, CloudSyncStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CloudSyncStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  );
+  static const VerificationMeta _installationIdMeta = const VerificationMeta(
+    'installationId',
+  );
+  @override
+  late final GeneratedColumn<String> installationId = GeneratedColumn<String>(
+    'installation_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSavedItemsCursorMeta =
+      const VerificationMeta('lastSavedItemsCursor');
+  @override
+  late final GeneratedColumn<DateTime> lastSavedItemsCursor =
+      GeneratedColumn<DateTime>(
+        'last_saved_items_cursor',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastRemindersCursorMeta =
+      const VerificationMeta('lastRemindersCursor');
+  @override
+  late final GeneratedColumn<DateTime> lastRemindersCursor =
+      GeneratedColumn<DateTime>(
+        'last_reminders_cursor',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastSuccessfulSyncAtMeta =
+      const VerificationMeta('lastSuccessfulSyncAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSuccessfulSyncAt =
+      GeneratedColumn<DateTime>(
+        'last_successful_sync_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastAttemptAtMeta = const VerificationMeta(
+    'lastAttemptAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastAttemptAt =
+      GeneratedColumn<DateTime>(
+        'last_attempt_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    installationId,
+    userId,
+    lastSavedItemsCursor,
+    lastRemindersCursor,
+    lastSuccessfulSyncAt,
+    lastAttemptAt,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cloud_sync_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CloudSyncStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('installation_id')) {
+      context.handle(
+        _installationIdMeta,
+        installationId.isAcceptableOrUnknown(
+          data['installation_id']!,
+          _installationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_installationIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('last_saved_items_cursor')) {
+      context.handle(
+        _lastSavedItemsCursorMeta,
+        lastSavedItemsCursor.isAcceptableOrUnknown(
+          data['last_saved_items_cursor']!,
+          _lastSavedItemsCursorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_reminders_cursor')) {
+      context.handle(
+        _lastRemindersCursorMeta,
+        lastRemindersCursor.isAcceptableOrUnknown(
+          data['last_reminders_cursor']!,
+          _lastRemindersCursorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_successful_sync_at')) {
+      context.handle(
+        _lastSuccessfulSyncAtMeta,
+        lastSuccessfulSyncAt.isAcceptableOrUnknown(
+          data['last_successful_sync_at']!,
+          _lastSuccessfulSyncAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_attempt_at')) {
+      context.handle(
+        _lastAttemptAtMeta,
+        lastAttemptAt.isAcceptableOrUnknown(
+          data['last_attempt_at']!,
+          _lastAttemptAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CloudSyncStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CloudSyncStateRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      installationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}installation_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      lastSavedItemsCursor: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_saved_items_cursor'],
+      ),
+      lastRemindersCursor: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_reminders_cursor'],
+      ),
+      lastSuccessfulSyncAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_successful_sync_at'],
+      ),
+      lastAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_attempt_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $CloudSyncStatesTable createAlias(String alias) {
+    return $CloudSyncStatesTable(attachedDatabase, alias);
+  }
+}
+
+class CloudSyncStateRow extends DataClass
+    implements Insertable<CloudSyncStateRow> {
+  final String id;
+  final String installationId;
+  final String? userId;
+  final DateTime? lastSavedItemsCursor;
+  final DateTime? lastRemindersCursor;
+  final DateTime? lastSuccessfulSyncAt;
+  final DateTime? lastAttemptAt;
+  final String? lastError;
+  const CloudSyncStateRow({
+    required this.id,
+    required this.installationId,
+    this.userId,
+    this.lastSavedItemsCursor,
+    this.lastRemindersCursor,
+    this.lastSuccessfulSyncAt,
+    this.lastAttemptAt,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['installation_id'] = Variable<String>(installationId);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    if (!nullToAbsent || lastSavedItemsCursor != null) {
+      map['last_saved_items_cursor'] = Variable<DateTime>(lastSavedItemsCursor);
+    }
+    if (!nullToAbsent || lastRemindersCursor != null) {
+      map['last_reminders_cursor'] = Variable<DateTime>(lastRemindersCursor);
+    }
+    if (!nullToAbsent || lastSuccessfulSyncAt != null) {
+      map['last_successful_sync_at'] = Variable<DateTime>(lastSuccessfulSyncAt);
+    }
+    if (!nullToAbsent || lastAttemptAt != null) {
+      map['last_attempt_at'] = Variable<DateTime>(lastAttemptAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  CloudSyncStatesCompanion toCompanion(bool nullToAbsent) {
+    return CloudSyncStatesCompanion(
+      id: Value(id),
+      installationId: Value(installationId),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      lastSavedItemsCursor: lastSavedItemsCursor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSavedItemsCursor),
+      lastRemindersCursor: lastRemindersCursor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastRemindersCursor),
+      lastSuccessfulSyncAt: lastSuccessfulSyncAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSuccessfulSyncAt),
+      lastAttemptAt: lastAttemptAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastAttemptAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+    );
+  }
+
+  factory CloudSyncStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CloudSyncStateRow(
+      id: serializer.fromJson<String>(json['id']),
+      installationId: serializer.fromJson<String>(json['installationId']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      lastSavedItemsCursor: serializer.fromJson<DateTime?>(
+        json['lastSavedItemsCursor'],
+      ),
+      lastRemindersCursor: serializer.fromJson<DateTime?>(
+        json['lastRemindersCursor'],
+      ),
+      lastSuccessfulSyncAt: serializer.fromJson<DateTime?>(
+        json['lastSuccessfulSyncAt'],
+      ),
+      lastAttemptAt: serializer.fromJson<DateTime?>(json['lastAttemptAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'installationId': serializer.toJson<String>(installationId),
+      'userId': serializer.toJson<String?>(userId),
+      'lastSavedItemsCursor': serializer.toJson<DateTime?>(
+        lastSavedItemsCursor,
+      ),
+      'lastRemindersCursor': serializer.toJson<DateTime?>(lastRemindersCursor),
+      'lastSuccessfulSyncAt': serializer.toJson<DateTime?>(
+        lastSuccessfulSyncAt,
+      ),
+      'lastAttemptAt': serializer.toJson<DateTime?>(lastAttemptAt),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  CloudSyncStateRow copyWith({
+    String? id,
+    String? installationId,
+    Value<String?> userId = const Value.absent(),
+    Value<DateTime?> lastSavedItemsCursor = const Value.absent(),
+    Value<DateTime?> lastRemindersCursor = const Value.absent(),
+    Value<DateTime?> lastSuccessfulSyncAt = const Value.absent(),
+    Value<DateTime?> lastAttemptAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+  }) => CloudSyncStateRow(
+    id: id ?? this.id,
+    installationId: installationId ?? this.installationId,
+    userId: userId.present ? userId.value : this.userId,
+    lastSavedItemsCursor: lastSavedItemsCursor.present
+        ? lastSavedItemsCursor.value
+        : this.lastSavedItemsCursor,
+    lastRemindersCursor: lastRemindersCursor.present
+        ? lastRemindersCursor.value
+        : this.lastRemindersCursor,
+    lastSuccessfulSyncAt: lastSuccessfulSyncAt.present
+        ? lastSuccessfulSyncAt.value
+        : this.lastSuccessfulSyncAt,
+    lastAttemptAt: lastAttemptAt.present
+        ? lastAttemptAt.value
+        : this.lastAttemptAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  CloudSyncStateRow copyWithCompanion(CloudSyncStatesCompanion data) {
+    return CloudSyncStateRow(
+      id: data.id.present ? data.id.value : this.id,
+      installationId: data.installationId.present
+          ? data.installationId.value
+          : this.installationId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      lastSavedItemsCursor: data.lastSavedItemsCursor.present
+          ? data.lastSavedItemsCursor.value
+          : this.lastSavedItemsCursor,
+      lastRemindersCursor: data.lastRemindersCursor.present
+          ? data.lastRemindersCursor.value
+          : this.lastRemindersCursor,
+      lastSuccessfulSyncAt: data.lastSuccessfulSyncAt.present
+          ? data.lastSuccessfulSyncAt.value
+          : this.lastSuccessfulSyncAt,
+      lastAttemptAt: data.lastAttemptAt.present
+          ? data.lastAttemptAt.value
+          : this.lastAttemptAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CloudSyncStateRow(')
+          ..write('id: $id, ')
+          ..write('installationId: $installationId, ')
+          ..write('userId: $userId, ')
+          ..write('lastSavedItemsCursor: $lastSavedItemsCursor, ')
+          ..write('lastRemindersCursor: $lastRemindersCursor, ')
+          ..write('lastSuccessfulSyncAt: $lastSuccessfulSyncAt, ')
+          ..write('lastAttemptAt: $lastAttemptAt, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    installationId,
+    userId,
+    lastSavedItemsCursor,
+    lastRemindersCursor,
+    lastSuccessfulSyncAt,
+    lastAttemptAt,
+    lastError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CloudSyncStateRow &&
+          other.id == this.id &&
+          other.installationId == this.installationId &&
+          other.userId == this.userId &&
+          other.lastSavedItemsCursor == this.lastSavedItemsCursor &&
+          other.lastRemindersCursor == this.lastRemindersCursor &&
+          other.lastSuccessfulSyncAt == this.lastSuccessfulSyncAt &&
+          other.lastAttemptAt == this.lastAttemptAt &&
+          other.lastError == this.lastError);
+}
+
+class CloudSyncStatesCompanion extends UpdateCompanion<CloudSyncStateRow> {
+  final Value<String> id;
+  final Value<String> installationId;
+  final Value<String?> userId;
+  final Value<DateTime?> lastSavedItemsCursor;
+  final Value<DateTime?> lastRemindersCursor;
+  final Value<DateTime?> lastSuccessfulSyncAt;
+  final Value<DateTime?> lastAttemptAt;
+  final Value<String?> lastError;
+  final Value<int> rowid;
+  const CloudSyncStatesCompanion({
+    this.id = const Value.absent(),
+    this.installationId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.lastSavedItemsCursor = const Value.absent(),
+    this.lastRemindersCursor = const Value.absent(),
+    this.lastSuccessfulSyncAt = const Value.absent(),
+    this.lastAttemptAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CloudSyncStatesCompanion.insert({
+    this.id = const Value.absent(),
+    required String installationId,
+    this.userId = const Value.absent(),
+    this.lastSavedItemsCursor = const Value.absent(),
+    this.lastRemindersCursor = const Value.absent(),
+    this.lastSuccessfulSyncAt = const Value.absent(),
+    this.lastAttemptAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : installationId = Value(installationId);
+  static Insertable<CloudSyncStateRow> custom({
+    Expression<String>? id,
+    Expression<String>? installationId,
+    Expression<String>? userId,
+    Expression<DateTime>? lastSavedItemsCursor,
+    Expression<DateTime>? lastRemindersCursor,
+    Expression<DateTime>? lastSuccessfulSyncAt,
+    Expression<DateTime>? lastAttemptAt,
+    Expression<String>? lastError,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (installationId != null) 'installation_id': installationId,
+      if (userId != null) 'user_id': userId,
+      if (lastSavedItemsCursor != null)
+        'last_saved_items_cursor': lastSavedItemsCursor,
+      if (lastRemindersCursor != null)
+        'last_reminders_cursor': lastRemindersCursor,
+      if (lastSuccessfulSyncAt != null)
+        'last_successful_sync_at': lastSuccessfulSyncAt,
+      if (lastAttemptAt != null) 'last_attempt_at': lastAttemptAt,
+      if (lastError != null) 'last_error': lastError,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CloudSyncStatesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? installationId,
+    Value<String?>? userId,
+    Value<DateTime?>? lastSavedItemsCursor,
+    Value<DateTime?>? lastRemindersCursor,
+    Value<DateTime?>? lastSuccessfulSyncAt,
+    Value<DateTime?>? lastAttemptAt,
+    Value<String?>? lastError,
+    Value<int>? rowid,
+  }) {
+    return CloudSyncStatesCompanion(
+      id: id ?? this.id,
+      installationId: installationId ?? this.installationId,
+      userId: userId ?? this.userId,
+      lastSavedItemsCursor: lastSavedItemsCursor ?? this.lastSavedItemsCursor,
+      lastRemindersCursor: lastRemindersCursor ?? this.lastRemindersCursor,
+      lastSuccessfulSyncAt: lastSuccessfulSyncAt ?? this.lastSuccessfulSyncAt,
+      lastAttemptAt: lastAttemptAt ?? this.lastAttemptAt,
+      lastError: lastError ?? this.lastError,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (installationId.present) {
+      map['installation_id'] = Variable<String>(installationId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (lastSavedItemsCursor.present) {
+      map['last_saved_items_cursor'] = Variable<DateTime>(
+        lastSavedItemsCursor.value,
+      );
+    }
+    if (lastRemindersCursor.present) {
+      map['last_reminders_cursor'] = Variable<DateTime>(
+        lastRemindersCursor.value,
+      );
+    }
+    if (lastSuccessfulSyncAt.present) {
+      map['last_successful_sync_at'] = Variable<DateTime>(
+        lastSuccessfulSyncAt.value,
+      );
+    }
+    if (lastAttemptAt.present) {
+      map['last_attempt_at'] = Variable<DateTime>(lastAttemptAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CloudSyncStatesCompanion(')
+          ..write('id: $id, ')
+          ..write('installationId: $installationId, ')
+          ..write('userId: $userId, ')
+          ..write('lastSavedItemsCursor: $lastSavedItemsCursor, ')
+          ..write('lastRemindersCursor: $lastRemindersCursor, ')
+          ..write('lastSuccessfulSyncAt: $lastSuccessfulSyncAt, ')
+          ..write('lastAttemptAt: $lastAttemptAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3336,6 +4090,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   late final $ScreenshotImportStatesTable screenshotImportStates =
       $ScreenshotImportStatesTable(this);
+  late final $CloudSyncStatesTable cloudSyncStates = $CloudSyncStatesTable(
+    this,
+  );
   late final Index savedItemsStatusIdx = Index(
     'saved_items_status_idx',
     'CREATE INDEX saved_items_status_idx ON saved_items (status)',
@@ -3394,6 +4151,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     reminders,
     syncQueue,
     screenshotImportStates,
+    cloudSyncStates,
     savedItemsStatusIdx,
     savedItemsCategoryIdx,
     savedItemsCapturedAtIdx,
@@ -3438,6 +4196,7 @@ typedef $$SavedItemsTableCreateCompanionBuilder = SavedItemsCompanion Function({
   Value<String?> previewCachePath,
   required SyncStatus syncStatus,
   Value<DateTime?> lastSyncedAt,
+  Value<DateTime?> remoteServerUpdatedAt,
   Value<int> rowid,
 });
 typedef $$SavedItemsTableUpdateCompanionBuilder = SavedItemsCompanion Function({
@@ -3470,6 +4229,7 @@ typedef $$SavedItemsTableUpdateCompanionBuilder = SavedItemsCompanion Function({
   Value<String?> previewCachePath,
   Value<SyncStatus> syncStatus,
   Value<DateTime?> lastSyncedAt,
+  Value<DateTime?> remoteServerUpdatedAt,
   Value<int> rowid,
 });
 
@@ -3664,6 +4424,11 @@ class $$SavedItemsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get remoteServerUpdatedAt => $composableBuilder(
+    column: $table.remoteServerUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> remindersRefs(
     Expression<bool> Function($$RemindersTableFilterComposer f) f,
   ) {
@@ -3843,6 +4608,11 @@ class $$SavedItemsTableOrderingComposer
     column: $table.lastSyncedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get remoteServerUpdatedAt => $composableBuilder(
+    column: $table.remoteServerUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SavedItemsTableAnnotationComposer
@@ -3968,6 +4738,11 @@ class $$SavedItemsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<DateTime> get remoteServerUpdatedAt => $composableBuilder(
+    column: $table.remoteServerUpdatedAt,
+    builder: (column) => column,
+  );
+
   Expression<T> remindersRefs<T extends Object>(
     Expression<T> Function($$RemindersTableAnnotationComposer a) f,
   ) {
@@ -4052,6 +4827,7 @@ class $$SavedItemsTableTableManager
                 Value<String?> previewCachePath = const Value.absent(),
                 Value<SyncStatus> syncStatus = const Value.absent(),
                 Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime?> remoteServerUpdatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SavedItemsCompanion(
                 id: id,
@@ -4083,6 +4859,7 @@ class $$SavedItemsTableTableManager
                 previewCachePath: previewCachePath,
                 syncStatus: syncStatus,
                 lastSyncedAt: lastSyncedAt,
+                remoteServerUpdatedAt: remoteServerUpdatedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4117,6 +4894,7 @@ class $$SavedItemsTableTableManager
                 Value<String?> previewCachePath = const Value.absent(),
                 required SyncStatus syncStatus,
                 Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime?> remoteServerUpdatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SavedItemsCompanion.insert(
                 id: id,
@@ -4148,6 +4926,7 @@ class $$SavedItemsTableTableManager
                 previewCachePath: previewCachePath,
                 syncStatus: syncStatus,
                 lastSyncedAt: lastSyncedAt,
+                remoteServerUpdatedAt: remoteServerUpdatedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4219,6 +4998,8 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   required SyncStatus syncStatus,
+  Value<DateTime?> lastSyncedAt,
+  Value<DateTime?> remoteServerUpdatedAt,
   Value<int> rowid,
 });
 typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
@@ -4232,6 +5013,8 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<SyncStatus> syncStatus,
+  Value<DateTime?> lastSyncedAt,
+  Value<DateTime?> remoteServerUpdatedAt,
   Value<int> rowid,
 });
 
@@ -4313,6 +5096,16 @@ class $$RemindersTableFilterComposer
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get remoteServerUpdatedAt => $composableBuilder(
+    column: $table.remoteServerUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SavedItemsTableFilterComposer get savedItemId {
     final $$SavedItemsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -4391,6 +5184,16 @@ class $$RemindersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get remoteServerUpdatedAt => $composableBuilder(
+    column: $table.remoteServerUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SavedItemsTableOrderingComposer get savedItemId {
     final $$SavedItemsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4456,6 +5259,16 @@ class $$RemindersTableAnnotationComposer
         builder: (column) => column,
       );
 
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get remoteServerUpdatedAt => $composableBuilder(
+    column: $table.remoteServerUpdatedAt,
+    builder: (column) => column,
+  );
+
   $$SavedItemsTableAnnotationComposer get savedItemId {
     final $$SavedItemsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -4518,6 +5331,8 @@ class $$RemindersTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<SyncStatus> syncStatus = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime?> remoteServerUpdatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RemindersCompanion(
                 id: id,
@@ -4530,6 +5345,8 @@ class $$RemindersTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 syncStatus: syncStatus,
+                lastSyncedAt: lastSyncedAt,
+                remoteServerUpdatedAt: remoteServerUpdatedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4544,6 +5361,8 @@ class $$RemindersTableTableManager
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required SyncStatus syncStatus,
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime?> remoteServerUpdatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RemindersCompanion.insert(
                 id: id,
@@ -4556,6 +5375,8 @@ class $$RemindersTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 syncStatus: syncStatus,
+                lastSyncedAt: lastSyncedAt,
+                remoteServerUpdatedAt: remoteServerUpdatedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5175,6 +5996,279 @@ typedef $$ScreenshotImportStatesTableProcessedTableManager =
       ScreenshotImportStateRow,
       PrefetchHooks Function()
     >;
+typedef $$CloudSyncStatesTableCreateCompanionBuilder =
+    CloudSyncStatesCompanion Function({
+      Value<String> id,
+      required String installationId,
+      Value<String?> userId,
+      Value<DateTime?> lastSavedItemsCursor,
+      Value<DateTime?> lastRemindersCursor,
+      Value<DateTime?> lastSuccessfulSyncAt,
+      Value<DateTime?> lastAttemptAt,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+typedef $$CloudSyncStatesTableUpdateCompanionBuilder =
+    CloudSyncStatesCompanion Function({
+      Value<String> id,
+      Value<String> installationId,
+      Value<String?> userId,
+      Value<DateTime?> lastSavedItemsCursor,
+      Value<DateTime?> lastRemindersCursor,
+      Value<DateTime?> lastSuccessfulSyncAt,
+      Value<DateTime?> lastAttemptAt,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+
+class $$CloudSyncStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $CloudSyncStatesTable> {
+  $$CloudSyncStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSavedItemsCursor => $composableBuilder(
+    column: $table.lastSavedItemsCursor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastRemindersCursor => $composableBuilder(
+    column: $table.lastRemindersCursor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSuccessfulSyncAt => $composableBuilder(
+    column: $table.lastSuccessfulSyncAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastAttemptAt => $composableBuilder(
+    column: $table.lastAttemptAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CloudSyncStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CloudSyncStatesTable> {
+  $$CloudSyncStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSavedItemsCursor => $composableBuilder(
+    column: $table.lastSavedItemsCursor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastRemindersCursor => $composableBuilder(
+    column: $table.lastRemindersCursor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSuccessfulSyncAt => $composableBuilder(
+    column: $table.lastSuccessfulSyncAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastAttemptAt => $composableBuilder(
+    column: $table.lastAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CloudSyncStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CloudSyncStatesTable> {
+  $$CloudSyncStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSavedItemsCursor => $composableBuilder(
+    column: $table.lastSavedItemsCursor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastRemindersCursor => $composableBuilder(
+    column: $table.lastRemindersCursor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastSuccessfulSyncAt => $composableBuilder(
+    column: $table.lastSuccessfulSyncAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastAttemptAt => $composableBuilder(
+    column: $table.lastAttemptAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+}
+
+class $$CloudSyncStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CloudSyncStatesTable,
+          CloudSyncStateRow,
+          $$CloudSyncStatesTableFilterComposer,
+          $$CloudSyncStatesTableOrderingComposer,
+          $$CloudSyncStatesTableAnnotationComposer,
+          $$CloudSyncStatesTableCreateCompanionBuilder,
+          $$CloudSyncStatesTableUpdateCompanionBuilder,
+          (
+            CloudSyncStateRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CloudSyncStatesTable,
+              CloudSyncStateRow
+            >,
+          ),
+          CloudSyncStateRow,
+          PrefetchHooks Function()
+        > {
+  $$CloudSyncStatesTableTableManager(
+    _$AppDatabase db,
+    $CloudSyncStatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CloudSyncStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CloudSyncStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CloudSyncStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> installationId = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<DateTime?> lastSavedItemsCursor = const Value.absent(),
+                Value<DateTime?> lastRemindersCursor = const Value.absent(),
+                Value<DateTime?> lastSuccessfulSyncAt = const Value.absent(),
+                Value<DateTime?> lastAttemptAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CloudSyncStatesCompanion(
+                id: id,
+                installationId: installationId,
+                userId: userId,
+                lastSavedItemsCursor: lastSavedItemsCursor,
+                lastRemindersCursor: lastRemindersCursor,
+                lastSuccessfulSyncAt: lastSuccessfulSyncAt,
+                lastAttemptAt: lastAttemptAt,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String installationId,
+                Value<String?> userId = const Value.absent(),
+                Value<DateTime?> lastSavedItemsCursor = const Value.absent(),
+                Value<DateTime?> lastRemindersCursor = const Value.absent(),
+                Value<DateTime?> lastSuccessfulSyncAt = const Value.absent(),
+                Value<DateTime?> lastAttemptAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CloudSyncStatesCompanion.insert(
+                id: id,
+                installationId: installationId,
+                userId: userId,
+                lastSavedItemsCursor: lastSavedItemsCursor,
+                lastRemindersCursor: lastRemindersCursor,
+                lastSuccessfulSyncAt: lastSuccessfulSyncAt,
+                lastAttemptAt: lastAttemptAt,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CloudSyncStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CloudSyncStatesTable,
+      CloudSyncStateRow,
+      $$CloudSyncStatesTableFilterComposer,
+      $$CloudSyncStatesTableOrderingComposer,
+      $$CloudSyncStatesTableAnnotationComposer,
+      $$CloudSyncStatesTableCreateCompanionBuilder,
+      $$CloudSyncStatesTableUpdateCompanionBuilder,
+      (
+        CloudSyncStateRow,
+        BaseReferences<_$AppDatabase, $CloudSyncStatesTable, CloudSyncStateRow>,
+      ),
+      CloudSyncStateRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5190,4 +6284,6 @@ class $AppDatabaseManager {
         _db,
         _db.screenshotImportStates,
       );
+  $$CloudSyncStatesTableTableManager get cloudSyncStates =>
+      $$CloudSyncStatesTableTableManager(_db, _db.cloudSyncStates);
 }

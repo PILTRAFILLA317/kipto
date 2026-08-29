@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kipto/features/photo_library/domain/photo_library_models.dart';
 import 'package:kipto/features/photo_library/presentation/providers/photo_library_providers.dart';
 import 'package:kipto/features/photo_library/presentation/widgets/screenshot_import_panel.dart';
+import 'package:kipto/core/auth/kipto_auth_state.dart';
+import 'package:kipto/core/providers/sync_providers.dart';
+import 'package:kipto/core/sync/sync_status.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -13,6 +16,8 @@ class SettingsScreen extends ConsumerWidget {
     final photoController = ref.read(
       screenshotImportControllerProvider.notifier,
     );
+    final authState = ref.watch(authStateProvider).valueOrNull;
+    final syncStatus = ref.watch(syncStatusProvider).valueOrNull;
     final showImporter =
         photoState.phase == ScreenshotImportPhase.ready ||
         photoState.phase == ScreenshotImportPhase.importing ||
@@ -31,17 +36,12 @@ class SettingsScreen extends ConsumerWidget {
             onOpenSettings: photoController.openSettings,
           ),
           if (showImporter) const ScreenshotImportPanel(),
-          const _SettingsSection(
-            title: 'Account',
-            icon: Icons.person_outline,
-            primary: 'Local mode',
-            secondary: 'Cloud account support will arrive later.',
-          ),
-          const _SettingsSection(
-            title: 'Cloud Sync',
-            icon: Icons.cloud_outlined,
-            primary: 'Not configured yet',
-            secondary: 'Your data currently stays on this device.',
+          _AccountSection(state: authState),
+          _CloudSyncSection(
+            authState: authState,
+            status: syncStatus,
+            onSync: () =>
+                ref.read(syncServiceProvider).syncNow(SyncReason.manual),
           ),
           const _SettingsSection(
             title: 'AI & Privacy',
@@ -64,6 +64,126 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _AccountSection extends StatelessWidget {
+  const _AccountSection({required this.state});
+  final KiptoAuthState? state;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = state?.status ?? KiptoAuthStatus.initializing;
+    if (status == KiptoAuthStatus.unconfigured) {
+      return const _SettingsSection(
+        title: 'Account',
+        icon: Icons.person_outline,
+        primary: 'Cloud sync not configured',
+        secondary: 'Kipto remains fully usable on this device.',
+      );
+    }
+    if (status == KiptoAuthStatus.anonymous) {
+      return const _SettingsSection(
+        title: 'Account',
+        icon: Icons.cloud_done_outlined,
+        primary: 'Cloud sync active',
+        secondary:
+            'Your library is linked to this installation. This anonymous '
+            'account cannot yet be restored on another device. Account '
+            'protection will be available in a future phase.',
+      );
+    }
+    if (status == KiptoAuthStatus.error ||
+        status == KiptoAuthStatus.signedOut) {
+      return const _SettingsSection(
+        title: 'Account',
+        icon: Icons.cloud_off_outlined,
+        primary: 'Cloud account unavailable',
+        secondary: 'Your local library is safe. Try syncing again later.',
+      );
+    }
+    return _SettingsSection(
+      title: 'Account',
+      icon: Icons.person_outline,
+      primary: status == KiptoAuthStatus.permanent
+          ? 'Cloud sync active'
+          : 'Connecting to cloud…',
+      secondary: status == KiptoAuthStatus.permanent
+          ? 'Your protected account is connected.'
+          : 'Your local library remains available while Kipto connects.',
+    );
+  }
+}
+
+class _CloudSyncSection extends StatelessWidget {
+  const _CloudSyncSection({
+    required this.authState,
+    required this.status,
+    required this.onSync,
+  });
+  final KiptoAuthState? authState;
+  final SyncStatusSnapshot? status;
+  final VoidCallback onSync;
+
+  @override
+  Widget build(BuildContext context) {
+    if (authState?.status == KiptoAuthStatus.unconfigured) {
+      return const _SettingsSection(
+        title: 'Cloud Sync',
+        icon: Icons.cloud_outlined,
+        primary: 'Not configured',
+        secondary: 'Add Supabase dart-defines to enable cloud metadata sync.',
+      );
+    }
+    final value = status ?? const SyncStatusSnapshot(phase: SyncPhase.idle);
+    final syncing = value.phase == SyncPhase.syncing;
+    final failed = value.phase == SyncPhase.offlineOrFailed;
+    final primary = syncing
+        ? 'Syncing…'
+        : failed
+        ? 'Sync error'
+        : 'Synced';
+    final secondary = failed
+        ? 'Your changes are safe on this device. '
+              '${value.pendingCount} changes waiting.'
+        : value.lastSuccessAt == null
+        ? '${value.pendingCount} changes waiting to sync.'
+        : 'Last synced ${_relative(value.lastSuccessAt!)}. '
+              '${value.pendingCount} changes waiting.';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'Cloud Sync',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: Icon(failed ? Icons.cloud_off : Icons.cloud_outlined),
+              title: Text(primary),
+              subtitle: Text(secondary),
+              trailing: TextButton(
+                onPressed: syncing ? null : onSync,
+                child: Text(failed ? 'Try again' : 'Sync now'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _relative(DateTime value) {
+    final elapsed = DateTime.now().toUtc().difference(value.toUtc());
+    if (elapsed.inMinutes < 1) return 'just now';
+    if (elapsed.inHours < 1) return '${elapsed.inMinutes} minutes ago';
+    if (elapsed.inDays < 1) return '${elapsed.inHours} hours ago';
+    return '${elapsed.inDays} days ago';
   }
 }
 

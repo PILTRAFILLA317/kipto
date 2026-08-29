@@ -98,18 +98,11 @@ class SavedItemsDao extends DatabaseAccessor<AppDatabase>
   Future<int> updateOriginalAvailability(
     Iterable<String> localAssetIds,
     bool available,
-    DateTime updatedAt,
   ) {
     final ids = localAssetIds.toList(growable: false);
     if (ids.isEmpty) return Future.value(0);
-    return (update(
-      savedItems,
-    )..where((item) => item.localAssetId.isIn(ids))).write(
-      SavedItemsCompanion(
-        originalAvailable: Value(available),
-        updatedAt: Value(updatedAt),
-      ),
-    );
+    return (update(savedItems)..where((item) => item.localAssetId.isIn(ids)))
+        .write(SavedItemsCompanion(originalAvailable: Value(available)));
   }
 
   Future<int> updateFields(String id, SavedItemsCompanion fields) =>

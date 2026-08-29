@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:convert';
 
 import 'package:clock/clock.dart';
@@ -6,13 +8,19 @@ import 'package:kipto/core/database/app_database.dart';
 import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 import 'package:kipto/core/domain/models/saved_item.dart';
 import 'package:kipto/core/repositories/saved_items_repository.dart';
+import 'package:kipto/core/sync/local_sync_coordinator.dart';
 
 final class DriftSavedItemsRepository implements SavedItemsRepository {
-  DriftSavedItemsRepository(this._database, {Clock? clock})
-    : _clock = clock ?? const Clock();
+  DriftSavedItemsRepository(
+    this._database, {
+    Clock? clock,
+    LocalSyncCoordinator? syncCoordinator,
+  }) : _clock = clock ?? const Clock(),
+       _syncCoordinator = syncCoordinator;
 
   final AppDatabase _database;
   final Clock _clock;
+  final LocalSyncCoordinator? _syncCoordinator;
 
   DateTime get _now => _clock.now().toUtc();
 
@@ -56,16 +64,46 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   }
 
   @override
-  Future<void> create(SavedItem item) =>
-      _database.savedItemsDao.insertItem(_toCompanion(item));
+  Future<void> create(SavedItem item) async {
+    final coordinator = _syncCoordinator;
+    final ownerId = item.ownerId ?? coordinator?.activeOwnerId;
+    final shouldSync =
+        coordinator != null &&
+        coordinator.canSyncOwner(ownerId) &&
+        !coordinator.isDemoId(item.id);
+    await _database.transaction(() async {
+      await _database.savedItemsDao.insertItem(
+        _toCompanion(
+          item,
+          ownerId: ownerId,
+          syncStatus: shouldSync ? SyncStatus.pendingCreate : item.syncStatus,
+        ),
+      );
+      if (shouldSync) {
+        await coordinator.enqueue(
+          entityType: SyncEntityType.savedItem,
+          entityId: item.id,
+          operation: SyncOperation.create,
+        );
+      }
+    });
+    if (shouldSync) coordinator.notifyAfterCommit();
+  }
 
   @override
-  Future<void> update(SavedItem item) =>
-      _database.savedItemsDao.upsertItem(_toCompanion(item, updatedAt: _now));
+  Future<void> update(SavedItem item) async {
+    final existing = await _require(item.id, includeDeleted: true);
+    await _writeSynchronized(
+      existing,
+      _toCompanion(item, updatedAt: _now),
+      SyncOperation.update,
+      replace: true,
+    );
+  }
 
   @override
   Future<void> changeStatus(String id, SavedItemStatus status) =>
-      _writeExisting(
+      _writeSynchronizedFields(
         id,
         SavedItemsCompanion(status: Value(status), updatedAt: Value(_now)),
       );
@@ -79,17 +117,18 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   @override
   Future<void> toggleFavorite(String id) async {
     final current = await _require(id);
-    await _database.savedItemsDao.updateFields(
-      id,
+    await _writeSynchronized(
+      current,
       SavedItemsCompanion(
         favorite: Value(!current.favorite),
         updatedAt: Value(_now),
       ),
+      SyncOperation.update,
     );
   }
 
   @override
-  Future<void> snooze(String id, DateTime until) => _writeExisting(
+  Future<void> snooze(String id, DateTime until) => _writeSynchronizedFields(
     id,
     SavedItemsCompanion(
       status: const Value(SavedItemStatus.snoozed),
@@ -99,7 +138,7 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   );
 
   @override
-  Future<void> restore(String id) => _writeExisting(
+  Future<void> restore(String id) => _writeSynchronizedFields(
     id,
     SavedItemsCompanion(
       status: const Value(SavedItemStatus.newItem),
@@ -111,14 +150,60 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   );
 
   @override
-  Future<void> softDelete(String id) => _writeExisting(
+  Future<void> softDelete(String id) => _writeSynchronizedFields(
     id,
-    SavedItemsCompanion(
-      deletedAt: Value(_now),
-      syncStatus: const Value(SyncStatus.localOnly),
-      updatedAt: Value(_now),
-    ),
+    SavedItemsCompanion(deletedAt: Value(_now), updatedAt: Value(_now)),
+    operation: SyncOperation.delete,
   );
+
+  Future<void> _writeSynchronizedFields(
+    String id,
+    SavedItemsCompanion fields, {
+    bool includeDeleted = false,
+    SyncOperation operation = SyncOperation.update,
+  }) async {
+    final existing = await _require(id, includeDeleted: includeDeleted);
+    await _writeSynchronized(existing, fields, operation);
+  }
+
+  Future<void> _writeSynchronized(
+    SavedItemRow existing,
+    SavedItemsCompanion fields,
+    SyncOperation operation, {
+    bool replace = false,
+  }) async {
+    final coordinator = _syncCoordinator;
+    final shouldSync =
+        coordinator != null &&
+        coordinator.canSyncOwner(existing.ownerId) &&
+        !coordinator.isDemoId(existing.id);
+    final pendingStatus = operation == SyncOperation.delete
+        ? SyncStatus.pendingDelete
+        : existing.syncStatus == SyncStatus.pendingCreate
+        ? SyncStatus.pendingCreate
+        : SyncStatus.pendingUpdate;
+    final synchronizedFields = shouldSync
+        ? fields.copyWith(syncStatus: Value(pendingStatus))
+        : fields;
+    await _database.transaction(() async {
+      if (replace) {
+        await _database.savedItemsDao.upsertItem(synchronizedFields);
+      } else {
+        await _database.savedItemsDao.updateFields(
+          existing.id,
+          synchronizedFields,
+        );
+      }
+      if (shouldSync) {
+        await coordinator.enqueue(
+          entityType: SyncEntityType.savedItem,
+          entityId: existing.id,
+          operation: operation,
+        );
+      }
+    });
+    if (shouldSync) coordinator.notifyAfterCommit();
+  }
 
   Future<SavedItemRow> _require(
     String id, {
@@ -130,15 +215,6 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
     );
     if (item == null) throw StateError('SavedItem $id does not exist');
     return item;
-  }
-
-  Future<void> _writeExisting(
-    String id,
-    SavedItemsCompanion fields, {
-    bool includeDeleted = false,
-  }) async {
-    await _require(id, includeDeleted: includeDeleted);
-    await _database.savedItemsDao.updateFields(id, fields);
   }
 
   int _compareInbox(SavedItem a, SavedItem b) {
@@ -190,38 +266,44 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
     previewCachePath: row.previewCachePath,
     syncStatus: row.syncStatus,
     lastSyncedAt: row.lastSyncedAt,
+    remoteServerUpdatedAt: row.remoteServerUpdatedAt,
   );
 
-  SavedItemsCompanion _toCompanion(SavedItem item, {DateTime? updatedAt}) =>
-      SavedItemsCompanion.insert(
-        id: item.id,
-        ownerId: Value(item.ownerId),
-        title: item.title,
-        summary: Value(item.summary),
-        category: item.category,
-        subtype: Value(item.subtype),
-        intent: Value(item.intent),
-        status: item.status,
-        favorite: Value(item.favorite),
-        capturedAt: item.capturedAt.toUtc(),
-        eventAt: Value(item.eventAt?.toUtc()),
-        expiresAt: Value(item.expiresAt?.toUtc()),
-        snoozedUntil: Value(item.snoozedUntil?.toUtc()),
-        location: Value(item.location),
-        entities: Value(item.entities),
-        availableActions: Value(item.availableActions),
-        cloudPreviewPath: Value(item.cloudPreviewPath),
-        imageHash: Value(item.imageHash),
-        analysisStatus: item.analysisStatus,
-        analysisVersion: Value(item.analysisVersion),
-        confidence: Value(item.confidence),
-        createdAt: item.createdAt.toUtc(),
-        updatedAt: (updatedAt ?? item.updatedAt).toUtc(),
-        deletedAt: Value(item.deletedAt?.toUtc()),
-        localAssetId: Value(item.localAssetId),
-        originalAvailable: Value(item.originalAvailable),
-        previewCachePath: Value(item.previewCachePath),
-        syncStatus: item.syncStatus,
-        lastSyncedAt: Value(item.lastSyncedAt?.toUtc()),
-      );
+  SavedItemsCompanion _toCompanion(
+    SavedItem item, {
+    DateTime? updatedAt,
+    String? ownerId,
+    SyncStatus? syncStatus,
+  }) => SavedItemsCompanion.insert(
+    id: item.id,
+    ownerId: Value(ownerId ?? item.ownerId),
+    title: item.title,
+    summary: Value(item.summary),
+    category: item.category,
+    subtype: Value(item.subtype),
+    intent: Value(item.intent),
+    status: item.status,
+    favorite: Value(item.favorite),
+    capturedAt: item.capturedAt.toUtc(),
+    eventAt: Value(item.eventAt?.toUtc()),
+    expiresAt: Value(item.expiresAt?.toUtc()),
+    snoozedUntil: Value(item.snoozedUntil?.toUtc()),
+    location: Value(item.location),
+    entities: Value(item.entities),
+    availableActions: Value(item.availableActions),
+    cloudPreviewPath: Value(item.cloudPreviewPath),
+    imageHash: Value(item.imageHash),
+    analysisStatus: item.analysisStatus,
+    analysisVersion: Value(item.analysisVersion),
+    confidence: Value(item.confidence),
+    createdAt: item.createdAt.toUtc(),
+    updatedAt: (updatedAt ?? item.updatedAt).toUtc(),
+    deletedAt: Value(item.deletedAt?.toUtc()),
+    localAssetId: Value(item.localAssetId),
+    originalAvailable: Value(item.originalAvailable),
+    previewCachePath: Value(item.previewCachePath),
+    syncStatus: syncStatus ?? item.syncStatus,
+    lastSyncedAt: Value(item.lastSyncedAt?.toUtc()),
+    remoteServerUpdatedAt: Value(item.remoteServerUpdatedAt?.toUtc()),
+  );
 }

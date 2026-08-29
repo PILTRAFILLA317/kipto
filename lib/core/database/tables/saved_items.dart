@@ -48,6 +48,7 @@ class SavedItems extends Table {
   TextColumn get previewCachePath => text().nullable()();
   TextColumn get syncStatus => text().map(const SyncStatusConverter())();
   DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  DateTimeColumn get remoteServerUpdatedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

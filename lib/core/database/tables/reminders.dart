@@ -17,6 +17,8 @@ class Reminders extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
   TextColumn get syncStatus => text().map(const SyncStatusConverter())();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  DateTimeColumn get remoteServerUpdatedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

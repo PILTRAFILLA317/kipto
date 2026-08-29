@@ -6,13 +6,20 @@ import 'package:kipto/core/repositories/drift_sync_queue_repository.dart';
 import 'package:kipto/core/repositories/reminders_repository.dart';
 import 'package:kipto/core/repositories/saved_items_repository.dart';
 import 'package:kipto/core/repositories/sync_queue_repository.dart';
+import 'package:kipto/core/providers/sync_providers.dart';
 
 final savedItemsRepositoryProvider = Provider<SavedItemsRepository>(
-  (ref) => DriftSavedItemsRepository(ref.watch(appDatabaseProvider)),
+  (ref) => DriftSavedItemsRepository(
+    ref.watch(appDatabaseProvider),
+    syncCoordinator: ref.watch(localSyncCoordinatorProvider),
+  ),
 );
 
 final remindersRepositoryProvider = Provider<RemindersRepository>(
-  (ref) => DriftRemindersRepository(ref.watch(appDatabaseProvider)),
+  (ref) => DriftRemindersRepository(
+    ref.watch(appDatabaseProvider),
+    syncCoordinator: ref.watch(localSyncCoordinatorProvider),
+  ),
 );
 
 final syncQueueRepositoryProvider = Provider<SyncQueueRepository>(

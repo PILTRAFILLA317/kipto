@@ -1,12 +1,13 @@
-# Kipto architecture — Phase 2
+# Kipto architecture — Phase 3
 
 ## Purpose
 
 Kipto is a screenshot inbox organized around intent. The user does not manage a
 screenshot record and a separate metadata record: both are one `SavedItem`.
-Phase 2 remains deliberately local-only and adds read-only Photos/MediaStore
-access behind a repository boundary. Supabase sync, cloud previews, multimodal
-analysis, notifications, Calendar, Maps, and billing still do not exist.
+Phase 3 preserves read-only Photos/MediaStore access and adds anonymous
+Supabase authentication plus offline-first metadata synchronization. Cloud
+previews, multimodal analysis, notifications, Calendar, Maps, and billing still
+do not exist.
 
 ## Dependency flow
 
@@ -21,7 +22,7 @@ Drift repositories / DAOs
         ↓
 SQLite (kipto.sqlite)
 
-Future: Drift ↔ SyncService ↔ Supabase
+Drift ↔ SyncService ↔ RemoteDataSource ↔ Supabase
 ```
 
 `PhotoLibraryRepository` is a parallel platform boundary consumed by the
@@ -85,7 +86,7 @@ SQLite stores date/time values as ISO-8601 text with explicit offsets. Domain
 writes normalize dates to UTC and UI formatting converts them to device-local
 time.
 
-## Drift schema v2
+## Drift schema v3
 
 `saved_items` uses a string UUID primary key and indexes for `status`,
 `category`, `captured_at`, `updated_at`, and `deleted_at`. It never stores image
@@ -107,10 +108,44 @@ operation, creation time, attempts, last attempt, and last error. It has no
 timer, worker, network client, or fake server. It is only the durable queue
 primitive a future `SyncService` will consume.
 
-`schemaVersion` is 2. The explicit v1 → v2 migration creates only the scanner
+`schemaVersion` is 3. The explicit v1 → v2 migration creates only the scanner
 state table and unique local-asset index. Existing SavedItems, reminders,
 favorites, statuses, and soft deletes are preserved. Foreign keys remain enabled
 before opening.
+
+The v2 → v3 migration adds `remoteServerUpdatedAt` to SavedItems,
+`lastSyncedAt` and `remoteServerUpdatedAt` to reminders, plus the singleton
+`cloud_sync_states` table. That table owns the random installation UUID,
+authenticated owner, incremental server cursors, last attempt/success, and a
+sanitized last error. Existing screenshots, asset IDs, reminders, and scanner
+state survive the migration.
+
+## Cloud synchronization
+
+Startup initializes Supabase only when both dart-defines are valid, waits for
+SDK session recovery, reuses or refreshes a recovered session, and creates an
+anonymous user only when no recoverable identity exists. Pre-auth local data is
+claimed transactionally; deterministic demo IDs are excluded.
+
+Every synchronizable repository mutation writes Drift, marks the entity dirty,
+and appends `sync_queue` in one transaction. Local changes debounce a best-effort
+sync. Startup, resumed, manual retry, and private Realtime invalidations also
+trigger the same service. Concurrent requests are serialized and may request
+one follow-up pass.
+
+Push coalesces queue rows by entity and sends final SavedItems before reminders
+in batches of 100. Deletes are tombstones. Pull pages by
+`server_updated_at` with a two-second overlap and preserves `localAssetId`,
+`originalAvailable`, and `previewCachePath`. Conflicts use pragmatic
+last-write-wins on `client_updated_at`; device clock skew is a known MVP
+limitation. The conflict strategy is isolated behind remote models/mappers so
+it can be replaced later.
+
+Supabase contains `saved_items`, `reminders`, and `devices`. RLS and grants
+restrict every operation to `auth.uid() = user_id`; anonymous Auth users use the
+authenticated Postgres role. Database triggers emit private
+`user:<userId>:sync` Broadcast events. Payloads never mutate Drift directly:
+they only invalidate and schedule the normal pull/merge path.
 
 ## Photo access and detection
 
@@ -197,7 +232,7 @@ favorites, expiry/event/snooze dates, actions, and a reminder. It is guarded by
 6. Deletes are soft-delete by default.
 7. Categories and actions are controlled enums.
 8. External integrations live outside presentation.
-9. Cloud sync will be added behind repositories and a sync layer.
+9. Cloud sync lives behind repositories and a sync layer.
 10. A SavedItem can exist when the screenshot original is unavailable locally.
 11. Photo access is read-only.
 12. Gallery scans operate on metadata, not full image bytes.
@@ -205,18 +240,22 @@ favorites, expiry/event/snooze dates, actions, and a reminder. It is guarded by
 14. A missing original asset never deletes its SavedItem.
 15. Imported screenshots remain `analysisStatus=unprocessed` until a later AI
     phase exists.
+16. The UI never reads directly from Supabase.
+17. Every synchronized write happens locally first.
+18. Supabase never receives `localAssetId` or other device-local fields.
+19. Supabase receives no screenshot bytes in Phase 3.
+20. Normal deletes are synchronized tombstones.
+21. Anonymous and permanent users share the same ownership model.
+22. Realtime invalidates; its payload is never a second source of truth.
+23. Sync failures never prevent local usage.
+24. A cloud SavedItem can exist without a local image.
+25. Demo seed data is never uploaded.
 
-## Not implemented in Phase 1
+## Not implemented in Phase 3
 
-There is no Supabase client, authentication, AI/OCR, file upload/download,
-networking, cloud preview generation, background processing, notifications,
-Calendar, Maps, tracking, WebView, RevenueCat, embeddings, or backend. Available
-external actions are display-only and labeled accordingly. Gallery observation
-is foreground-only; no WorkManager, BGTaskScheduler, service, or closed-app
+There is no AI/OCR, image upload/download, cloud preview generation, Edge
+Function, permanent login UI, background processing, notifications, Calendar,
+Maps, tracking, WebView, RevenueCat, or embeddings. Available external actions
+are display-only and labeled accordingly. Gallery observation and sync triggers
+are foreground-only; no WorkManager, BGTaskScheduler, service, or closed-app
 polling is used.
-
-## Next phase
-
-Cloud synchronization can be added later as `Drift ↔ SyncService ↔ Supabase`,
-preserving Drift as the state read by presentation. This phase does not advance
-into that work.

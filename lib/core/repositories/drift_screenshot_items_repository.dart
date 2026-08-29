@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:kipto/core/database/app_database.dart';
@@ -5,16 +7,23 @@ import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 import 'package:kipto/features/photo_library/domain/photo_library_models.dart';
 import 'package:kipto/features/photo_library/domain/screenshot_items_repository.dart';
 import 'package:uuid/uuid.dart';
+import 'package:kipto/core/sync/local_sync_coordinator.dart';
 
 final class DriftScreenshotItemsRepository
     implements ScreenshotItemsRepository {
-  DriftScreenshotItemsRepository(this._database, {Clock? clock, Uuid? uuid})
-    : _clock = clock ?? const Clock(),
-      _uuid = uuid ?? const Uuid();
+  DriftScreenshotItemsRepository(
+    this._database, {
+    Clock? clock,
+    Uuid? uuid,
+    LocalSyncCoordinator? syncCoordinator,
+  }) : _clock = clock ?? const Clock(),
+       _uuid = uuid ?? const Uuid(),
+       _syncCoordinator = syncCoordinator;
 
   final AppDatabase _database;
   final Clock _clock;
   final Uuid _uuid;
+  final LocalSyncCoordinator? _syncCoordinator;
 
   @override
   Future<Set<String>> existingLocalAssetIds(Iterable<String> ids) async =>
@@ -27,11 +36,13 @@ final class DriftScreenshotItemsRepository
       assets.map((asset) => asset.id),
     );
     final now = _clock.now().toUtc();
+    final ownerId = _syncCoordinator?.activeOwnerId;
     final pending = assets
         .where((asset) => !existing.contains(asset.id))
         .map(
           (asset) => SavedItemsCompanion.insert(
             id: _uuid.v4(),
+            ownerId: Value(ownerId),
             title: 'Screenshot',
             summary: const Value(''),
             category: SavedItemCategory.other,
@@ -48,14 +59,34 @@ final class DriftScreenshotItemsRepository
             updatedAt: now,
             localAssetId: Value(asset.id),
             originalAvailable: const Value(true),
-            syncStatus: SyncStatus.localOnly,
+            syncStatus: ownerId == null
+                ? SyncStatus.localOnly
+                : SyncStatus.pendingCreate,
           ),
         )
         .toList(growable: false);
     if (pending.isEmpty) return 0;
-    await _database.savedItemsDao.insertItemsIgnoringDuplicates(pending);
+    await _database.transaction(() async {
+      await _database.savedItemsDao.insertItemsIgnoringDuplicates(pending);
+      if (ownerId != null) {
+        for (final item in pending) {
+          if (await _database.savedItemsDao.findById(item.id.value) == null) {
+            continue;
+          }
+          await _syncCoordinator!.enqueue(
+            entityType: SyncEntityType.savedItem,
+            entityId: item.id.value,
+            operation: SyncOperation.create,
+          );
+        }
+      }
+    });
     final after = await existingLocalAssetIds(assets.map((asset) => asset.id));
-    return after.difference(existing).length;
+    final inserted = after.difference(existing).length;
+    if (inserted > 0 && ownerId != null) {
+      _syncCoordinator!.notifyAfterCommit();
+    }
+    return inserted;
   }
 
   @override
@@ -75,7 +106,6 @@ final class DriftScreenshotItemsRepository
     await _database.savedItemsDao.updateOriginalAvailability(
       localAssetIds,
       available,
-      _clock.now().toUtc(),
     );
   }
 

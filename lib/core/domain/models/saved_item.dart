@@ -31,6 +31,7 @@ final class SavedItem {
     this.localAssetId,
     this.previewCachePath,
     this.lastSyncedAt,
+    this.remoteServerUpdatedAt,
   });
 
   final String id;
@@ -62,4 +63,5 @@ final class SavedItem {
   final String? previewCachePath;
   final SyncStatus syncStatus;
   final DateTime? lastSyncedAt;
+  final DateTime? remoteServerUpdatedAt;
 }

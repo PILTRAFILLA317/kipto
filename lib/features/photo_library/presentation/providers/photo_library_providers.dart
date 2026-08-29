@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kipto/core/providers/database_provider.dart';
+import 'package:kipto/core/providers/sync_providers.dart';
 import 'package:kipto/core/repositories/drift_screenshot_import_state_repository.dart';
 import 'package:kipto/core/repositories/drift_screenshot_items_repository.dart';
 import 'package:kipto/dev/seed/demo_seed_service.dart';
@@ -17,7 +18,10 @@ final photoLibraryRepositoryProvider = Provider<PhotoLibraryRepository>((ref) {
 });
 
 final screenshotItemsRepositoryProvider = Provider<ScreenshotItemsRepository>(
-  (ref) => DriftScreenshotItemsRepository(ref.watch(appDatabaseProvider)),
+  (ref) => DriftScreenshotItemsRepository(
+    ref.watch(appDatabaseProvider),
+    syncCoordinator: ref.watch(localSyncCoordinatorProvider),
+  ),
 );
 
 final screenshotImportStateRepositoryProvider =

@@ -12,6 +12,8 @@ final class Reminder {
     this.ownerId,
     this.completedAt,
     this.deletedAt,
+    this.lastSyncedAt,
+    this.remoteServerUpdatedAt,
   });
 
   final String id;
@@ -24,4 +26,6 @@ final class Reminder {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final SyncStatus syncStatus;
+  final DateTime? lastSyncedAt;
+  final DateTime? remoteServerUpdatedAt;
 }

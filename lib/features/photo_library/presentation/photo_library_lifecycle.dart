@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kipto/features/photo_library/presentation/providers/photo_library_providers.dart';
 import 'package:kipto/features/photo_library/domain/photo_library_repository.dart';
+import 'package:kipto/core/providers/sync_providers.dart';
+import 'package:kipto/core/sync/sync_status.dart';
 
 final class PhotoLibraryLifecycle extends ConsumerStatefulWidget {
   const PhotoLibraryLifecycle({super.key, required this.child});
@@ -46,6 +48,7 @@ final class _PhotoLibraryLifecycleState
     if (ref.read(screenshotImportControllerProvider).permission.hasAccess) {
       await repository.startObservingChanges();
     }
+    await ref.read(syncServiceProvider).initialize();
   }
 
   @override
@@ -66,6 +69,7 @@ final class _PhotoLibraryLifecycleState
     } else {
       await _repository?.stopObservingChanges();
     }
+    await ref.read(syncServiceProvider).syncNow(SyncReason.resume);
   }
 
   @override
