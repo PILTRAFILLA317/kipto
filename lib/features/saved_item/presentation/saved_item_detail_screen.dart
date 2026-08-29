@@ -9,6 +9,7 @@ import 'package:kipto/core/presentation/widgets/async_error_view.dart';
 import 'package:kipto/core/providers/repository_providers.dart';
 import 'package:kipto/core/utils/date_formatters.dart';
 import 'package:kipto/features/saved_item/presentation/providers/saved_item_providers.dart';
+import 'package:kipto/features/photo_library/presentation/widgets/local_asset_thumbnail.dart';
 
 class SavedItemDetailScreen extends ConsumerStatefulWidget {
   const SavedItemDetailScreen({super.key, required this.itemId});
@@ -73,12 +74,24 @@ class _SavedItemDetailScreenState extends ConsumerState<SavedItemDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
-          const _ScreenshotPlaceholder(),
+          if (item.localAssetId != null)
+            LocalAssetThumbnail(
+              localAssetId: item.localAssetId!,
+              originalAvailable: item.originalAvailable,
+              requestWidth: 1200,
+              requestHeight: 1800,
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+              missingMessage:
+                  'Original screenshot is no longer available on this device',
+            )
+          else
+            const _ScreenshotPlaceholder(),
           const SizedBox(height: 24),
           Text(item.title, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            item.summary,
+            item.summary.isEmpty ? 'Ready to analyze' : item.summary,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

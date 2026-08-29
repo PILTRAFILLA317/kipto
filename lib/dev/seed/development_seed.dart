@@ -20,6 +20,18 @@ final class DevelopmentSeed {
   static const mediaId = '00000000-0000-4000-8000-000000000009';
   static const informationId = '00000000-0000-4000-8000-000000000010';
   static const reminderId = '10000000-0000-4000-8000-000000000001';
+  static const knownItemIds = <String>[
+    concertId,
+    restaurantId,
+    couponId,
+    productId,
+    orderId,
+    recipeId,
+    conversationId,
+    memeId,
+    mediaId,
+    informationId,
+  ];
 
   final AppDatabase _database;
   final Clock _clock;

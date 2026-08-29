@@ -5,8 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kipto/app/app.dart';
 import 'package:kipto/app/router/app_router.dart';
 import 'package:kipto/core/providers/database_provider.dart';
+import 'package:kipto/core/repositories/drift_screenshot_import_state_repository.dart';
 import 'package:kipto/dev/seed/development_seed.dart';
+import 'package:kipto/features/photo_library/domain/screenshot_import_state.dart';
+import 'package:kipto/features/photo_library/presentation/providers/photo_library_providers.dart';
 
+import 'fakes/fake_photo_library_repository.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -18,11 +22,17 @@ void main() {
       database,
       clock: Clock.fixed(DateTime.utc(2026, 8, 29, 12)),
     ).run();
+    await DriftScreenshotImportStateRepository(database)
+        .write(const ScreenshotImportState(initialImportCompleted: true));
+    final photoLibrary = FakePhotoLibraryRepository();
     appRouter.go('/inbox');
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database)],
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          photoLibraryRepositoryProvider.overrideWithValue(photoLibrary),
+        ],
         child: const KiptoApp(),
       ),
     );
@@ -51,10 +61,11 @@ void main() {
     await tester.tap(find.text('The National at Auditorio Central'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Screenshot preview will appear here'), findsOneWidget);
+    expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
     expect(find.text('Saved item'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
+    await photoLibrary.dispose();
   });
 }

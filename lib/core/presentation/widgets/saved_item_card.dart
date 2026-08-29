@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 import 'package:kipto/core/domain/models/saved_item.dart';
 import 'package:kipto/core/presentation/saved_item_display.dart';
 import 'package:kipto/core/utils/date_formatters.dart';
+import 'package:kipto/features/photo_library/presentation/widgets/local_asset_thumbnail.dart';
 
 class SavedItemCard extends StatelessWidget {
   const SavedItemCard({super.key, required this.item});
@@ -27,19 +29,29 @@ class SavedItemCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+              if (item.localAssetId != null)
+                LocalAssetThumbnail(
+                  localAssetId: item.localAssetId!,
+                  originalAvailable: item.originalAvailable,
+                  requestWidth: 240,
+                  requestHeight: 300,
+                  width: 72,
+                  height: 88,
+                )
+              else
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: colors.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    item.category.icon,
+                    color: colors.onSecondaryContainer,
+                  ),
                 ),
-                child: Icon(
-                  item.category.icon,
-                  color: colors.onSecondaryContainer,
-                ),
-              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -66,7 +78,9 @@ class SavedItemCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      item.summary,
+                      item.summary.isEmpty
+                          ? 'Captured ${formatLocalDateTime(item.capturedAt)}'
+                          : item.summary,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: colors.onSurfaceVariant),
@@ -77,6 +91,11 @@ class SavedItemCard extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         _MetadataLabel(label: item.category.singularLabel),
+                        if (item.analysisStatus == AnalysisStatus.unprocessed)
+                          const _MetadataLabel(
+                            label: 'Ready to analyze',
+                            emphasized: true,
+                          ),
                         if (dateLabel != null)
                           _MetadataLabel(
                             label: dateLabel,

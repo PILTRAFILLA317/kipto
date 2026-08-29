@@ -8,6 +8,11 @@ import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 @TableIndex(name: 'saved_items_captured_at_idx', columns: {#capturedAt})
 @TableIndex(name: 'saved_items_updated_at_idx', columns: {#updatedAt})
 @TableIndex(name: 'saved_items_deleted_at_idx', columns: {#deletedAt})
+@TableIndex(
+  name: 'saved_items_local_asset_id_unique_idx',
+  columns: {#localAssetId},
+  unique: true,
+)
 class SavedItems extends Table {
   TextColumn get id => text()();
   TextColumn get ownerId => text().nullable()();

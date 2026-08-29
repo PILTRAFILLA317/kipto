@@ -55,11 +55,62 @@ class SavedItemsDao extends DatabaseAccessor<AppDatabase>
   Future<List<SavedItemRow>> getActive() =>
       (select(savedItems)..where((_) => _isActive())).get();
 
+  Future<List<SavedItemRow>> getWithLocalAssets() => (select(
+    savedItems,
+  )..where((item) => item.localAssetId.isNotNull())).get();
+
+  Future<List<String>> getExistingLocalAssetIds(Iterable<String> ids) async {
+    final values = ids.toList(growable: false);
+    if (values.isEmpty) return const [];
+    final query = selectOnly(savedItems)
+      ..addColumns([savedItems.localAssetId])
+      ..where(savedItems.localAssetId.isIn(values));
+    final rows = await query.get();
+    return rows
+        .map((row) => row.read(savedItems.localAssetId))
+        .whereType<String>()
+        .toList(growable: false);
+  }
+
   Future<void> insertItem(SavedItemsCompanion item) =>
       into(savedItems).insert(item);
 
   Future<void> upsertItem(SavedItemsCompanion item) =>
       into(savedItems).insertOnConflictUpdate(item);
+
+  Future<int> insertItemsIgnoringDuplicates(
+    List<SavedItemsCompanion> items,
+  ) async {
+    if (items.isEmpty) return 0;
+    var inserted = 0;
+    await batch((batch) {
+      for (final item in items) {
+        batch.insert(savedItems, item, mode: InsertMode.insertOrIgnore);
+      }
+    });
+    final ids = items
+        .map((item) => item.localAssetId.value)
+        .whereType<String>();
+    inserted = (await getExistingLocalAssetIds(ids)).length;
+    return inserted;
+  }
+
+  Future<int> updateOriginalAvailability(
+    Iterable<String> localAssetIds,
+    bool available,
+    DateTime updatedAt,
+  ) {
+    final ids = localAssetIds.toList(growable: false);
+    if (ids.isEmpty) return Future.value(0);
+    return (update(
+      savedItems,
+    )..where((item) => item.localAssetId.isIn(ids))).write(
+      SavedItemsCompanion(
+        originalAvailable: Value(available),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
 
   Future<int> updateFields(String id, SavedItemsCompanion fields) =>
       (update(savedItems)..where((item) => item.id.equals(id))).write(fields);

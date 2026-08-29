@@ -2742,12 +2742,600 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueRow> {
   }
 }
 
+class $ScreenshotImportStatesTable extends ScreenshotImportStates
+    with TableInfo<$ScreenshotImportStatesTable, ScreenshotImportStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ScreenshotImportStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  );
+  static const VerificationMeta _initialImportCompletedMeta =
+      const VerificationMeta('initialImportCompleted');
+  @override
+  late final GeneratedColumn<bool> initialImportCompleted =
+      GeneratedColumn<bool>(
+        'initial_import_completed',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("initial_import_completed" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _lastScanAtMeta = const VerificationMeta(
+    'lastScanAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastScanAt = GeneratedColumn<DateTime>(
+    'last_scan_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastKnownScreenshotCountMeta =
+      const VerificationMeta('lastKnownScreenshotCount');
+  @override
+  late final GeneratedColumn<int> lastKnownScreenshotCount =
+      GeneratedColumn<int>(
+        'last_known_screenshot_count',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _lastSuccessfulScanAtMeta =
+      const VerificationMeta('lastSuccessfulScanAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSuccessfulScanAt =
+      GeneratedColumn<DateTime>(
+        'last_successful_scan_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _importScopeMeta = const VerificationMeta(
+    'importScope',
+  );
+  @override
+  late final GeneratedColumn<String> importScope = GeneratedColumn<String>(
+    'import_scope',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _scanVersionMeta = const VerificationMeta(
+    'scanVersion',
+  );
+  @override
+  late final GeneratedColumn<int> scanVersion = GeneratedColumn<int>(
+    'scan_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _lastReconciledAtMeta = const VerificationMeta(
+    'lastReconciledAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastReconciledAt =
+      GeneratedColumn<DateTime>(
+        'last_reconciled_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    initialImportCompleted,
+    lastScanAt,
+    lastKnownScreenshotCount,
+    lastSuccessfulScanAt,
+    importScope,
+    scanVersion,
+    lastReconciledAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'screenshot_import_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ScreenshotImportStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('initial_import_completed')) {
+      context.handle(
+        _initialImportCompletedMeta,
+        initialImportCompleted.isAcceptableOrUnknown(
+          data['initial_import_completed']!,
+          _initialImportCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_scan_at')) {
+      context.handle(
+        _lastScanAtMeta,
+        lastScanAt.isAcceptableOrUnknown(
+          data['last_scan_at']!,
+          _lastScanAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_known_screenshot_count')) {
+      context.handle(
+        _lastKnownScreenshotCountMeta,
+        lastKnownScreenshotCount.isAcceptableOrUnknown(
+          data['last_known_screenshot_count']!,
+          _lastKnownScreenshotCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_successful_scan_at')) {
+      context.handle(
+        _lastSuccessfulScanAtMeta,
+        lastSuccessfulScanAt.isAcceptableOrUnknown(
+          data['last_successful_scan_at']!,
+          _lastSuccessfulScanAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('import_scope')) {
+      context.handle(
+        _importScopeMeta,
+        importScope.isAcceptableOrUnknown(
+          data['import_scope']!,
+          _importScopeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scan_version')) {
+      context.handle(
+        _scanVersionMeta,
+        scanVersion.isAcceptableOrUnknown(
+          data['scan_version']!,
+          _scanVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_reconciled_at')) {
+      context.handle(
+        _lastReconciledAtMeta,
+        lastReconciledAt.isAcceptableOrUnknown(
+          data['last_reconciled_at']!,
+          _lastReconciledAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ScreenshotImportStateRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ScreenshotImportStateRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      initialImportCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}initial_import_completed'],
+      )!,
+      lastScanAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_scan_at'],
+      ),
+      lastKnownScreenshotCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_known_screenshot_count'],
+      )!,
+      lastSuccessfulScanAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_successful_scan_at'],
+      ),
+      importScope: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}import_scope'],
+      ),
+      scanVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scan_version'],
+      )!,
+      lastReconciledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_reconciled_at'],
+      ),
+    );
+  }
+
+  @override
+  $ScreenshotImportStatesTable createAlias(String alias) {
+    return $ScreenshotImportStatesTable(attachedDatabase, alias);
+  }
+}
+
+class ScreenshotImportStateRow extends DataClass
+    implements Insertable<ScreenshotImportStateRow> {
+  final String id;
+  final bool initialImportCompleted;
+  final DateTime? lastScanAt;
+  final int lastKnownScreenshotCount;
+  final DateTime? lastSuccessfulScanAt;
+  final String? importScope;
+  final int scanVersion;
+  final DateTime? lastReconciledAt;
+  const ScreenshotImportStateRow({
+    required this.id,
+    required this.initialImportCompleted,
+    this.lastScanAt,
+    required this.lastKnownScreenshotCount,
+    this.lastSuccessfulScanAt,
+    this.importScope,
+    required this.scanVersion,
+    this.lastReconciledAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['initial_import_completed'] = Variable<bool>(initialImportCompleted);
+    if (!nullToAbsent || lastScanAt != null) {
+      map['last_scan_at'] = Variable<DateTime>(lastScanAt);
+    }
+    map['last_known_screenshot_count'] = Variable<int>(
+      lastKnownScreenshotCount,
+    );
+    if (!nullToAbsent || lastSuccessfulScanAt != null) {
+      map['last_successful_scan_at'] = Variable<DateTime>(lastSuccessfulScanAt);
+    }
+    if (!nullToAbsent || importScope != null) {
+      map['import_scope'] = Variable<String>(importScope);
+    }
+    map['scan_version'] = Variable<int>(scanVersion);
+    if (!nullToAbsent || lastReconciledAt != null) {
+      map['last_reconciled_at'] = Variable<DateTime>(lastReconciledAt);
+    }
+    return map;
+  }
+
+  ScreenshotImportStatesCompanion toCompanion(bool nullToAbsent) {
+    return ScreenshotImportStatesCompanion(
+      id: Value(id),
+      initialImportCompleted: Value(initialImportCompleted),
+      lastScanAt: lastScanAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastScanAt),
+      lastKnownScreenshotCount: Value(lastKnownScreenshotCount),
+      lastSuccessfulScanAt: lastSuccessfulScanAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSuccessfulScanAt),
+      importScope: importScope == null && nullToAbsent
+          ? const Value.absent()
+          : Value(importScope),
+      scanVersion: Value(scanVersion),
+      lastReconciledAt: lastReconciledAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastReconciledAt),
+    );
+  }
+
+  factory ScreenshotImportStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ScreenshotImportStateRow(
+      id: serializer.fromJson<String>(json['id']),
+      initialImportCompleted: serializer.fromJson<bool>(
+        json['initialImportCompleted'],
+      ),
+      lastScanAt: serializer.fromJson<DateTime?>(json['lastScanAt']),
+      lastKnownScreenshotCount: serializer.fromJson<int>(
+        json['lastKnownScreenshotCount'],
+      ),
+      lastSuccessfulScanAt: serializer.fromJson<DateTime?>(
+        json['lastSuccessfulScanAt'],
+      ),
+      importScope: serializer.fromJson<String?>(json['importScope']),
+      scanVersion: serializer.fromJson<int>(json['scanVersion']),
+      lastReconciledAt: serializer.fromJson<DateTime?>(
+        json['lastReconciledAt'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'initialImportCompleted': serializer.toJson<bool>(initialImportCompleted),
+      'lastScanAt': serializer.toJson<DateTime?>(lastScanAt),
+      'lastKnownScreenshotCount': serializer.toJson<int>(
+        lastKnownScreenshotCount,
+      ),
+      'lastSuccessfulScanAt': serializer.toJson<DateTime?>(
+        lastSuccessfulScanAt,
+      ),
+      'importScope': serializer.toJson<String?>(importScope),
+      'scanVersion': serializer.toJson<int>(scanVersion),
+      'lastReconciledAt': serializer.toJson<DateTime?>(lastReconciledAt),
+    };
+  }
+
+  ScreenshotImportStateRow copyWith({
+    String? id,
+    bool? initialImportCompleted,
+    Value<DateTime?> lastScanAt = const Value.absent(),
+    int? lastKnownScreenshotCount,
+    Value<DateTime?> lastSuccessfulScanAt = const Value.absent(),
+    Value<String?> importScope = const Value.absent(),
+    int? scanVersion,
+    Value<DateTime?> lastReconciledAt = const Value.absent(),
+  }) => ScreenshotImportStateRow(
+    id: id ?? this.id,
+    initialImportCompleted:
+        initialImportCompleted ?? this.initialImportCompleted,
+    lastScanAt: lastScanAt.present ? lastScanAt.value : this.lastScanAt,
+    lastKnownScreenshotCount:
+        lastKnownScreenshotCount ?? this.lastKnownScreenshotCount,
+    lastSuccessfulScanAt: lastSuccessfulScanAt.present
+        ? lastSuccessfulScanAt.value
+        : this.lastSuccessfulScanAt,
+    importScope: importScope.present ? importScope.value : this.importScope,
+    scanVersion: scanVersion ?? this.scanVersion,
+    lastReconciledAt: lastReconciledAt.present
+        ? lastReconciledAt.value
+        : this.lastReconciledAt,
+  );
+  ScreenshotImportStateRow copyWithCompanion(
+    ScreenshotImportStatesCompanion data,
+  ) {
+    return ScreenshotImportStateRow(
+      id: data.id.present ? data.id.value : this.id,
+      initialImportCompleted: data.initialImportCompleted.present
+          ? data.initialImportCompleted.value
+          : this.initialImportCompleted,
+      lastScanAt: data.lastScanAt.present
+          ? data.lastScanAt.value
+          : this.lastScanAt,
+      lastKnownScreenshotCount: data.lastKnownScreenshotCount.present
+          ? data.lastKnownScreenshotCount.value
+          : this.lastKnownScreenshotCount,
+      lastSuccessfulScanAt: data.lastSuccessfulScanAt.present
+          ? data.lastSuccessfulScanAt.value
+          : this.lastSuccessfulScanAt,
+      importScope: data.importScope.present
+          ? data.importScope.value
+          : this.importScope,
+      scanVersion: data.scanVersion.present
+          ? data.scanVersion.value
+          : this.scanVersion,
+      lastReconciledAt: data.lastReconciledAt.present
+          ? data.lastReconciledAt.value
+          : this.lastReconciledAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScreenshotImportStateRow(')
+          ..write('id: $id, ')
+          ..write('initialImportCompleted: $initialImportCompleted, ')
+          ..write('lastScanAt: $lastScanAt, ')
+          ..write('lastKnownScreenshotCount: $lastKnownScreenshotCount, ')
+          ..write('lastSuccessfulScanAt: $lastSuccessfulScanAt, ')
+          ..write('importScope: $importScope, ')
+          ..write('scanVersion: $scanVersion, ')
+          ..write('lastReconciledAt: $lastReconciledAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    initialImportCompleted,
+    lastScanAt,
+    lastKnownScreenshotCount,
+    lastSuccessfulScanAt,
+    importScope,
+    scanVersion,
+    lastReconciledAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ScreenshotImportStateRow &&
+          other.id == this.id &&
+          other.initialImportCompleted == this.initialImportCompleted &&
+          other.lastScanAt == this.lastScanAt &&
+          other.lastKnownScreenshotCount == this.lastKnownScreenshotCount &&
+          other.lastSuccessfulScanAt == this.lastSuccessfulScanAt &&
+          other.importScope == this.importScope &&
+          other.scanVersion == this.scanVersion &&
+          other.lastReconciledAt == this.lastReconciledAt);
+}
+
+class ScreenshotImportStatesCompanion
+    extends UpdateCompanion<ScreenshotImportStateRow> {
+  final Value<String> id;
+  final Value<bool> initialImportCompleted;
+  final Value<DateTime?> lastScanAt;
+  final Value<int> lastKnownScreenshotCount;
+  final Value<DateTime?> lastSuccessfulScanAt;
+  final Value<String?> importScope;
+  final Value<int> scanVersion;
+  final Value<DateTime?> lastReconciledAt;
+  final Value<int> rowid;
+  const ScreenshotImportStatesCompanion({
+    this.id = const Value.absent(),
+    this.initialImportCompleted = const Value.absent(),
+    this.lastScanAt = const Value.absent(),
+    this.lastKnownScreenshotCount = const Value.absent(),
+    this.lastSuccessfulScanAt = const Value.absent(),
+    this.importScope = const Value.absent(),
+    this.scanVersion = const Value.absent(),
+    this.lastReconciledAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ScreenshotImportStatesCompanion.insert({
+    this.id = const Value.absent(),
+    this.initialImportCompleted = const Value.absent(),
+    this.lastScanAt = const Value.absent(),
+    this.lastKnownScreenshotCount = const Value.absent(),
+    this.lastSuccessfulScanAt = const Value.absent(),
+    this.importScope = const Value.absent(),
+    this.scanVersion = const Value.absent(),
+    this.lastReconciledAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  static Insertable<ScreenshotImportStateRow> custom({
+    Expression<String>? id,
+    Expression<bool>? initialImportCompleted,
+    Expression<DateTime>? lastScanAt,
+    Expression<int>? lastKnownScreenshotCount,
+    Expression<DateTime>? lastSuccessfulScanAt,
+    Expression<String>? importScope,
+    Expression<int>? scanVersion,
+    Expression<DateTime>? lastReconciledAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (initialImportCompleted != null)
+        'initial_import_completed': initialImportCompleted,
+      if (lastScanAt != null) 'last_scan_at': lastScanAt,
+      if (lastKnownScreenshotCount != null)
+        'last_known_screenshot_count': lastKnownScreenshotCount,
+      if (lastSuccessfulScanAt != null)
+        'last_successful_scan_at': lastSuccessfulScanAt,
+      if (importScope != null) 'import_scope': importScope,
+      if (scanVersion != null) 'scan_version': scanVersion,
+      if (lastReconciledAt != null) 'last_reconciled_at': lastReconciledAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ScreenshotImportStatesCompanion copyWith({
+    Value<String>? id,
+    Value<bool>? initialImportCompleted,
+    Value<DateTime?>? lastScanAt,
+    Value<int>? lastKnownScreenshotCount,
+    Value<DateTime?>? lastSuccessfulScanAt,
+    Value<String?>? importScope,
+    Value<int>? scanVersion,
+    Value<DateTime?>? lastReconciledAt,
+    Value<int>? rowid,
+  }) {
+    return ScreenshotImportStatesCompanion(
+      id: id ?? this.id,
+      initialImportCompleted:
+          initialImportCompleted ?? this.initialImportCompleted,
+      lastScanAt: lastScanAt ?? this.lastScanAt,
+      lastKnownScreenshotCount:
+          lastKnownScreenshotCount ?? this.lastKnownScreenshotCount,
+      lastSuccessfulScanAt: lastSuccessfulScanAt ?? this.lastSuccessfulScanAt,
+      importScope: importScope ?? this.importScope,
+      scanVersion: scanVersion ?? this.scanVersion,
+      lastReconciledAt: lastReconciledAt ?? this.lastReconciledAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (initialImportCompleted.present) {
+      map['initial_import_completed'] = Variable<bool>(
+        initialImportCompleted.value,
+      );
+    }
+    if (lastScanAt.present) {
+      map['last_scan_at'] = Variable<DateTime>(lastScanAt.value);
+    }
+    if (lastKnownScreenshotCount.present) {
+      map['last_known_screenshot_count'] = Variable<int>(
+        lastKnownScreenshotCount.value,
+      );
+    }
+    if (lastSuccessfulScanAt.present) {
+      map['last_successful_scan_at'] = Variable<DateTime>(
+        lastSuccessfulScanAt.value,
+      );
+    }
+    if (importScope.present) {
+      map['import_scope'] = Variable<String>(importScope.value);
+    }
+    if (scanVersion.present) {
+      map['scan_version'] = Variable<int>(scanVersion.value);
+    }
+    if (lastReconciledAt.present) {
+      map['last_reconciled_at'] = Variable<DateTime>(lastReconciledAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScreenshotImportStatesCompanion(')
+          ..write('id: $id, ')
+          ..write('initialImportCompleted: $initialImportCompleted, ')
+          ..write('lastScanAt: $lastScanAt, ')
+          ..write('lastKnownScreenshotCount: $lastKnownScreenshotCount, ')
+          ..write('lastSuccessfulScanAt: $lastSuccessfulScanAt, ')
+          ..write('importScope: $importScope, ')
+          ..write('scanVersion: $scanVersion, ')
+          ..write('lastReconciledAt: $lastReconciledAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SavedItemsTable savedItems = $SavedItemsTable(this);
   late final $RemindersTable reminders = $RemindersTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
+  late final $ScreenshotImportStatesTable screenshotImportStates =
+      $ScreenshotImportStatesTable(this);
   late final Index savedItemsStatusIdx = Index(
     'saved_items_status_idx',
     'CREATE INDEX saved_items_status_idx ON saved_items (status)',
@@ -2767,6 +3355,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final Index savedItemsDeletedAtIdx = Index(
     'saved_items_deleted_at_idx',
     'CREATE INDEX saved_items_deleted_at_idx ON saved_items (deleted_at)',
+  );
+  late final Index savedItemsLocalAssetIdUniqueIdx = Index(
+    'saved_items_local_asset_id_unique_idx',
+    'CREATE UNIQUE INDEX saved_items_local_asset_id_unique_idx ON saved_items (local_asset_id)',
   );
   late final Index remindersSavedItemIdx = Index(
     'reminders_saved_item_idx',
@@ -2791,6 +3383,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final SavedItemsDao savedItemsDao = SavedItemsDao(this as AppDatabase);
   late final RemindersDao remindersDao = RemindersDao(this as AppDatabase);
   late final SyncQueueDao syncQueueDao = SyncQueueDao(this as AppDatabase);
+  late final ScreenshotImportStateDao screenshotImportStateDao =
+      ScreenshotImportStateDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2799,11 +3393,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     savedItems,
     reminders,
     syncQueue,
+    screenshotImportStates,
     savedItemsStatusIdx,
     savedItemsCategoryIdx,
     savedItemsCapturedAtIdx,
     savedItemsUpdatedAtIdx,
     savedItemsDeletedAtIdx,
+    savedItemsLocalAssetIdUniqueIdx,
     remindersSavedItemIdx,
     remindersRemindAtIdx,
     remindersDeletedAtIdx,
@@ -4289,6 +4885,296 @@ typedef $$SyncQueueTableProcessedTableManager =
       SyncQueueRow,
       PrefetchHooks Function()
     >;
+typedef $$ScreenshotImportStatesTableCreateCompanionBuilder =
+    ScreenshotImportStatesCompanion Function({
+      Value<String> id,
+      Value<bool> initialImportCompleted,
+      Value<DateTime?> lastScanAt,
+      Value<int> lastKnownScreenshotCount,
+      Value<DateTime?> lastSuccessfulScanAt,
+      Value<String?> importScope,
+      Value<int> scanVersion,
+      Value<DateTime?> lastReconciledAt,
+      Value<int> rowid,
+    });
+typedef $$ScreenshotImportStatesTableUpdateCompanionBuilder =
+    ScreenshotImportStatesCompanion Function({
+      Value<String> id,
+      Value<bool> initialImportCompleted,
+      Value<DateTime?> lastScanAt,
+      Value<int> lastKnownScreenshotCount,
+      Value<DateTime?> lastSuccessfulScanAt,
+      Value<String?> importScope,
+      Value<int> scanVersion,
+      Value<DateTime?> lastReconciledAt,
+      Value<int> rowid,
+    });
+
+class $$ScreenshotImportStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $ScreenshotImportStatesTable> {
+  $$ScreenshotImportStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get initialImportCompleted => $composableBuilder(
+    column: $table.initialImportCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastScanAt => $composableBuilder(
+    column: $table.lastScanAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastKnownScreenshotCount => $composableBuilder(
+    column: $table.lastKnownScreenshotCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSuccessfulScanAt => $composableBuilder(
+    column: $table.lastSuccessfulScanAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get importScope => $composableBuilder(
+    column: $table.importScope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get scanVersion => $composableBuilder(
+    column: $table.scanVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastReconciledAt => $composableBuilder(
+    column: $table.lastReconciledAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ScreenshotImportStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ScreenshotImportStatesTable> {
+  $$ScreenshotImportStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get initialImportCompleted => $composableBuilder(
+    column: $table.initialImportCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastScanAt => $composableBuilder(
+    column: $table.lastScanAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastKnownScreenshotCount => $composableBuilder(
+    column: $table.lastKnownScreenshotCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSuccessfulScanAt => $composableBuilder(
+    column: $table.lastSuccessfulScanAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get importScope => $composableBuilder(
+    column: $table.importScope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get scanVersion => $composableBuilder(
+    column: $table.scanVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastReconciledAt => $composableBuilder(
+    column: $table.lastReconciledAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ScreenshotImportStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ScreenshotImportStatesTable> {
+  $$ScreenshotImportStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get initialImportCompleted => $composableBuilder(
+    column: $table.initialImportCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastScanAt => $composableBuilder(
+    column: $table.lastScanAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastKnownScreenshotCount => $composableBuilder(
+    column: $table.lastKnownScreenshotCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastSuccessfulScanAt => $composableBuilder(
+    column: $table.lastSuccessfulScanAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get importScope => $composableBuilder(
+    column: $table.importScope,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get scanVersion => $composableBuilder(
+    column: $table.scanVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastReconciledAt => $composableBuilder(
+    column: $table.lastReconciledAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ScreenshotImportStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ScreenshotImportStatesTable,
+          ScreenshotImportStateRow,
+          $$ScreenshotImportStatesTableFilterComposer,
+          $$ScreenshotImportStatesTableOrderingComposer,
+          $$ScreenshotImportStatesTableAnnotationComposer,
+          $$ScreenshotImportStatesTableCreateCompanionBuilder,
+          $$ScreenshotImportStatesTableUpdateCompanionBuilder,
+          (
+            ScreenshotImportStateRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ScreenshotImportStatesTable,
+              ScreenshotImportStateRow
+            >,
+          ),
+          ScreenshotImportStateRow,
+          PrefetchHooks Function()
+        > {
+  $$ScreenshotImportStatesTableTableManager(
+    _$AppDatabase db,
+    $ScreenshotImportStatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ScreenshotImportStatesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ScreenshotImportStatesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ScreenshotImportStatesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<bool> initialImportCompleted = const Value.absent(),
+                Value<DateTime?> lastScanAt = const Value.absent(),
+                Value<int> lastKnownScreenshotCount = const Value.absent(),
+                Value<DateTime?> lastSuccessfulScanAt = const Value.absent(),
+                Value<String?> importScope = const Value.absent(),
+                Value<int> scanVersion = const Value.absent(),
+                Value<DateTime?> lastReconciledAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ScreenshotImportStatesCompanion(
+                id: id,
+                initialImportCompleted: initialImportCompleted,
+                lastScanAt: lastScanAt,
+                lastKnownScreenshotCount: lastKnownScreenshotCount,
+                lastSuccessfulScanAt: lastSuccessfulScanAt,
+                importScope: importScope,
+                scanVersion: scanVersion,
+                lastReconciledAt: lastReconciledAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<bool> initialImportCompleted = const Value.absent(),
+                Value<DateTime?> lastScanAt = const Value.absent(),
+                Value<int> lastKnownScreenshotCount = const Value.absent(),
+                Value<DateTime?> lastSuccessfulScanAt = const Value.absent(),
+                Value<String?> importScope = const Value.absent(),
+                Value<int> scanVersion = const Value.absent(),
+                Value<DateTime?> lastReconciledAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ScreenshotImportStatesCompanion.insert(
+                id: id,
+                initialImportCompleted: initialImportCompleted,
+                lastScanAt: lastScanAt,
+                lastKnownScreenshotCount: lastKnownScreenshotCount,
+                lastSuccessfulScanAt: lastSuccessfulScanAt,
+                importScope: importScope,
+                scanVersion: scanVersion,
+                lastReconciledAt: lastReconciledAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ScreenshotImportStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ScreenshotImportStatesTable,
+      ScreenshotImportStateRow,
+      $$ScreenshotImportStatesTableFilterComposer,
+      $$ScreenshotImportStatesTableOrderingComposer,
+      $$ScreenshotImportStatesTableAnnotationComposer,
+      $$ScreenshotImportStatesTableCreateCompanionBuilder,
+      $$ScreenshotImportStatesTableUpdateCompanionBuilder,
+      (
+        ScreenshotImportStateRow,
+        BaseReferences<
+          _$AppDatabase,
+          $ScreenshotImportStatesTable,
+          ScreenshotImportStateRow
+        >,
+      ),
+      ScreenshotImportStateRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4299,4 +5185,9 @@ class $AppDatabaseManager {
       $$RemindersTableTableManager(_db, _db.reminders);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
+  $$ScreenshotImportStatesTableTableManager get screenshotImportStates =>
+      $$ScreenshotImportStatesTableTableManager(
+        _db,
+        _db.screenshotImportStates,
+      );
 }
