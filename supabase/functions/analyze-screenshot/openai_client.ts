@@ -5,7 +5,10 @@ import {
   screenshotAnalysisJsonSchema,
 } from './analysis_schema.ts'
 import { ANALYSIS_INSTRUCTIONS, temporalContext } from './analysis_prompt.ts'
-import { AnalysisHttpError } from './errors.ts'
+import {
+  type AnalysisErrorDiagnostics,
+  AnalysisHttpError,
+} from './errors.ts'
 import { type AnalyzeScreenshotRequest, validateAnalysis } from './validation.ts'
 
 export type OpenAiAnalysisResult = {
@@ -88,23 +91,36 @@ export async function analyzeWithOpenAi(
 
   if (!response.ok) {
     const retryAfter = retryAfterSeconds(response.headers.get('retry-after'))
+    const diagnostics = await providerErrorDiagnostics(response)
     if (response.status === 429) {
-      throw new AnalysisHttpError(429, {
-        code: 'rate_limited',
-        retryable: true,
-        ...(retryAfter == null ? {} : { retryAfterSeconds: retryAfter }),
-      })
+      throw new AnalysisHttpError(
+        429,
+        {
+          code: 'rate_limited',
+          retryable: true,
+          ...(retryAfter == null ? {} : { retryAfterSeconds: retryAfter }),
+        },
+        diagnostics,
+      )
     }
     if (response.status === 408 || response.status >= 500) {
-      throw new AnalysisHttpError(502, {
-        code: response.status === 408 ? 'upstream_timeout' : 'server_error',
-        retryable: true,
-      })
+      throw new AnalysisHttpError(
+        502,
+        {
+          code: response.status === 408 ? 'upstream_timeout' : 'server_error',
+          retryable: true,
+        },
+        diagnostics,
+      )
     }
-    throw new AnalysisHttpError(502, {
-      code: 'invalid_response',
-      retryable: false,
-    })
+    throw new AnalysisHttpError(
+      502,
+      {
+        code: 'invalid_response',
+        retryable: false,
+      },
+      diagnostics,
+    )
   }
 
   let payload: Record<string, unknown>
@@ -180,6 +196,32 @@ function retryAfterSeconds(value: string | null): number | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+async function providerErrorDiagnostics(
+  response: Response,
+): Promise<AnalysisErrorDiagnostics> {
+  const diagnostics: AnalysisErrorDiagnostics = {
+    providerStatus: response.status,
+  }
+  try {
+    const payload: unknown = await response.json()
+    if (!isRecord(payload) || !isRecord(payload.error)) return diagnostics
+    const code = safeDiagnosticValue(payload.error.code)
+    const type = safeDiagnosticValue(payload.error.type)
+    const param = safeDiagnosticValue(payload.error.param)
+    if (code != null) diagnostics.providerCode = code
+    if (type != null) diagnostics.providerType = type
+    if (param != null) diagnostics.providerParam = param
+  } catch {
+    // HTTP status is enough when the provider body is absent or malformed.
+  }
+  return diagnostics
+}
+
+function safeDiagnosticValue(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length > 120) return null
+  return /^[A-Za-z0-9_.\-[\]]+$/.test(value) ? value : null
 }
 
 function invalidResponse(): AnalysisHttpError {

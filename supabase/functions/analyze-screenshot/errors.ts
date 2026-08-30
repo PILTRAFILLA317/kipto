@@ -4,10 +4,18 @@ export type PublicAnalysisError = {
   retryAfterSeconds?: number
 }
 
+export type AnalysisErrorDiagnostics = {
+  providerStatus?: number
+  providerCode?: string
+  providerType?: string
+  providerParam?: string
+}
+
 export class AnalysisHttpError extends Error {
   constructor(
     readonly status: number,
     readonly publicError: PublicAnalysisError,
+    readonly diagnostics: AnalysisErrorDiagnostics = {},
   ) {
     super(publicError.code)
   }

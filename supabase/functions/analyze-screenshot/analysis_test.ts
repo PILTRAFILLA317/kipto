@@ -1,4 +1,5 @@
 import { entityKeys, type ScreenshotAnalysis } from './analysis_schema.ts'
+import { AnalysisHttpError } from './errors.ts'
 import { handleAnalyzeScreenshot, parseDailyLimit } from './handler.ts'
 import { analyzeWithOpenAi } from './openai_client.ts'
 import { type UsageRecorder } from './usage.ts'
@@ -96,7 +97,38 @@ Deno.test('OpenAI mapping uses Responses image input and strict schema', async (
   const format = text.format as Record<string, unknown>
   assertEquals(format.type, 'json_schema')
   assertEquals(format.strict, true)
+  assert(!JSON.stringify(format).includes('uniqueItems'))
   assert(!('tools' in sent), 'No tools may be sent')
+})
+
+Deno.test('provider 4xx retains only safe diagnostics', async () => {
+  try {
+    await analyzeWithOpenAi(validateRequestBody(validRequest()), {
+      apiKey: 'test',
+      model: 'gpt-5.6-luna',
+      safetyIdentifier: 'hash',
+      fetcher: () =>
+        Promise.resolve(Response.json({
+          error: {
+            code: 'invalid_json_schema',
+            type: 'invalid_request_error',
+            param: 'text.format.schema',
+            message: 'provider detail that must not be logged',
+          },
+        }, { status: 400 })),
+    })
+    throw new Error('Expected request to fail')
+  } catch (error) {
+    assert(error instanceof AnalysisHttpError)
+    assertEquals(error.publicError.code, 'invalid_response')
+    assertEquals(error.diagnostics, {
+      providerStatus: 400,
+      providerCode: 'invalid_json_schema',
+      providerType: 'invalid_request_error',
+      providerParam: 'text.format.schema',
+    })
+    assert(!JSON.stringify(error.diagnostics).includes('provider detail'))
+  }
 })
 
 Deno.test('OpenAI refusal, invalid output, and 429 become typed safe errors', async () => {

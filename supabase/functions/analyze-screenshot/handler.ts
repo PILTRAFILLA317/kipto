@@ -147,6 +147,7 @@ export async function handleAnalyzeScreenshot(
       latencyMs: dependencies.now().getTime() - startedAt,
       status: 'failed',
       errorCode: safe.publicError.code,
+      ...safe.diagnostics,
     })
     return errorResponse(safe)
   }

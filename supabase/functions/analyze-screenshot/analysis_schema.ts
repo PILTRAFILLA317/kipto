@@ -139,7 +139,6 @@ export const screenshotAnalysisJsonSchema = {
     suggestedActions: {
       type: 'array',
       maxItems: 9,
-      uniqueItems: true,
       items: { type: 'string', enum: suggestedActions },
     },
     eventAt: nullableIsoDate,
@@ -167,13 +166,11 @@ export const screenshotAnalysisJsonSchema = {
     uncertainFields: {
       type: 'array',
       maxItems: 12,
-      uniqueItems: true,
       items: { type: 'string', enum: uncertainFieldNames },
     },
     searchKeywords: {
       type: 'array',
       maxItems: 12,
-      uniqueItems: true,
       items: { type: 'string', minLength: 1, maxLength: 60 },
     },
   },

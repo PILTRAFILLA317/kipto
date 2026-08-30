@@ -35,13 +35,7 @@ final class SupabaseScreenshotAnalysisClient
     try {
       final response = await _client.functions.invoke(
         'analyze-screenshot',
-        body: {
-          'requestVersion': 1,
-          'imageBase64': base64Encode(request.imageBytes),
-          'mimeType': request.mimeType,
-          'capturedAt': request.capturedAt.toLocal().toIso8601String(),
-          'locale': request.locale,
-        },
+        body: encodeScreenshotAnalysisRequest(request),
         abortSignal: abort.future,
       );
       if (response.data is! Map) throw _invalidResponse();
@@ -74,6 +68,16 @@ final class SupabaseScreenshotAnalysisClient
     retryable: true,
   );
 }
+
+Map<String, Object> encodeScreenshotAnalysisRequest(
+  ScreenshotAnalysisRequest request,
+) => {
+  'requestVersion': 1,
+  'imageBase64': base64Encode(request.imageBytes),
+  'mimeType': request.mimeType,
+  'capturedAt': request.capturedAt.toUtc().toIso8601String(),
+  'locale': request.locale,
+};
 
 AnalysisFailure analysisFailureFromFunctionException(
   FunctionException exception,

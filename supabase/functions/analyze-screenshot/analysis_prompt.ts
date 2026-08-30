@@ -9,6 +9,8 @@ Resolve relative dates such as "tomorrow" from the supplied screenshot capture t
 
 When a date is supported strongly enough to return, encode a complete ISO 8601 date-time with Z or an explicit numeric offset. Otherwise return null.
 
+Do not repeat values inside any array.
+
 Return only the structured result. Do not include reasoning or an explanation.`
 
 export function temporalContext(capturedAt: string, locale: string): string {
