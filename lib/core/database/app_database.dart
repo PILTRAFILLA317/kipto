@@ -29,7 +29,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'kipto'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   DriftDatabaseOptions get options =>
@@ -37,7 +37,10 @@ final class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (migrator) => migrator.createAll(),
+    onCreate: (migrator) async {
+      await migrator.createAll();
+      await _createAnalysisQueue();
+    },
     onUpgrade: (migrator, from, to) async {
       if (from >= to) return;
       if (from == 1) {
@@ -65,11 +68,36 @@ final class AppDatabase extends _$AppDatabase {
           await migrator.createTable(cloudSyncStates);
         }
       }
+      if (from < 4) {
+        await _createAnalysisQueue();
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  Future<void> _createAnalysisQueue() async {
+    await customStatement('''
+      CREATE TABLE IF NOT EXISTS analysis_queue (
+        saved_item_id TEXT NOT NULL PRIMARY KEY
+          REFERENCES saved_items(id) ON DELETE CASCADE,
+        state TEXT NOT NULL CHECK (
+          state IN ('queued', 'processing', 'retryScheduled', 'paused')
+        ),
+        priority INTEGER NOT NULL DEFAULT 0,
+        attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+        next_attempt_at TEXT,
+        enqueued_at TEXT NOT NULL,
+        started_at TEXT,
+        last_error_code TEXT
+      )
+    ''');
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS analysis_queue_due_idx
+      ON analysis_queue (state, next_attempt_at, priority, enqueued_at)
+    ''');
+  }
 
   Future<bool> _columnExists(String table, String column) async {
     final rows = await customSelect('PRAGMA table_info($table)').get();

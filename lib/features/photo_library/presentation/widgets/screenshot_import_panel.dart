@@ -108,11 +108,13 @@ class ScreenshotImportPanel extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: state.availableCount == 0
-                ? null
-                : controller.importSelected,
+            onPressed: controller.importSelected,
             icon: const Icon(Icons.download_outlined),
-            label: const Text('Import screenshots'),
+            label: Text(
+              state.availableCount == 0
+                  ? 'Continue without importing'
+                  : 'Import screenshots',
+            ),
           ),
         ],
       ),

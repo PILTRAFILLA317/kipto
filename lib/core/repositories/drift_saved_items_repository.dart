@@ -1,12 +1,12 @@
 // ignore_for_file: prefer_initializing_formals
 
-import 'dart:convert';
-
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:kipto/core/database/app_database.dart';
 import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 import 'package:kipto/core/domain/models/saved_item.dart';
+import 'package:kipto/core/domain/models/inbox_overview.dart';
+import 'package:kipto/core/domain/models/library_query.dart';
 import 'package:kipto/core/repositories/saved_items_repository.dart';
 import 'package:kipto/core/sync/local_sync_coordinator.dart';
 
@@ -25,14 +25,46 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   DateTime get _now => _clock.now().toUtc();
 
   @override
-  Stream<List<SavedItem>> watchInbox() => _database.savedItemsDao
-      .watchInbox()
-      .map((rows) => rows.map(_fromRow).toList()..sort(_compareInbox));
+  Stream<InboxOverview> watchInboxOverview(DateTime now) =>
+      _database.savedItemsDao.watchInboxCandidates(now).asyncMap((rows) async {
+        final organized = InboxPolicy.organize(
+          rows.map(_fromRow).toList(growable: false),
+          now,
+        );
+        return InboxOverview(
+          sections: organized.sections,
+          attentionCount: await _database.savedItemsDao.countInboxAttention(
+            now,
+          ),
+        );
+      });
 
   @override
   Stream<List<SavedItem>> watchAll() => _database.savedItemsDao
       .watchActive()
       .map((rows) => rows.map(_fromRow).toList(growable: false));
+
+  @override
+  Stream<List<SavedItem>> watchLibrary(LibraryQuery query) => _database
+      .savedItemsDao
+      .watchLibrary(query)
+      .map((rows) => rows.map(_fromRow).toList(growable: false));
+
+  @override
+  Stream<LibraryCounts> watchLibraryCounts() =>
+      _database.savedItemsDao.watchCounts().map((rows) {
+        final counts = <SavedItemCategory, int>{};
+        var unprocessed = 0;
+        for (final row in rows) {
+          counts[row.category] = row.count;
+          unprocessed += row.unprocessed;
+        }
+        return LibraryCounts(
+          total: counts.values.fold(0, (total, count) => total + count),
+          byCategory: Map.unmodifiable(counts),
+          unprocessed: unprocessed,
+        );
+      });
 
   @override
   Stream<List<SavedItem>> watchByCategory(SavedItemCategory category) =>
@@ -49,18 +81,26 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   Future<List<SavedItem>> search(String query) async {
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) return const [];
-    final rows = await _database.savedItemsDao.getActive();
-    return rows.map(_fromRow).where((item) {
-      final haystack = [
-        item.title,
-        item.summary,
-        item.subtype ?? '',
-        item.intent ?? '',
-        item.category.name,
-        jsonEncode(item.entities),
-      ].join(' ').toLowerCase();
-      return haystack.contains(normalized);
-    }).toList()..sort((a, b) => b.capturedAt.compareTo(a.capturedAt));
+    final rows = await _database.savedItemsDao.searchActive(normalized);
+    final categoryMatches = SavedItemCategory.values
+        .where(
+          (category) =>
+              category.name.toLowerCase().contains(normalized) ||
+              normalized.contains(category.name.toLowerCase()),
+        )
+        .toSet();
+    if (categoryMatches.isEmpty) {
+      return rows.map(_fromRow).toList(growable: false);
+    }
+    final categoryRows = await _database.savedItemsDao.getByCategories(
+      categoryMatches,
+    );
+    final combined = <String, SavedItem>{
+      for (final row in rows) row.id: _fromRow(row),
+      for (final row in categoryRows)
+        if (categoryMatches.contains(row.category)) row.id: _fromRow(row),
+    }.values.toList()..sort((a, b) => b.capturedAt.compareTo(a.capturedAt));
+    return combined;
   }
 
   @override
@@ -98,6 +138,53 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
       _toCompanion(item, updatedAt: _now),
       SyncOperation.update,
       replace: true,
+    );
+  }
+
+  @override
+  Future<void> updateTitle(String id, String title) async {
+    final normalized = title.trim();
+    if (normalized.isEmpty) throw ArgumentError.value(title, 'title');
+    final existing = await _require(id);
+    await _writeSynchronized(
+      existing,
+      SavedItemsCompanion(
+        title: Value(normalized),
+        entities: Value(_withUserSource(existing.entities, title: true)),
+        updatedAt: Value(_now),
+      ),
+      SyncOperation.update,
+    );
+  }
+
+  @override
+  Future<void> updateCategory(String id, SavedItemCategory category) async {
+    final existing = await _require(id);
+    await _writeSynchronized(
+      existing,
+      SavedItemsCompanion(
+        category: Value(category),
+        entities: Value(_withUserSource(existing.entities, category: true)),
+        updatedAt: Value(_now),
+      ),
+      SyncOperation.update,
+    );
+  }
+
+  @override
+  Future<void> updateNote(String id, String? note) async {
+    final existing = await _require(id);
+    final entities = Map<String, Object?>.from(existing.entities);
+    final normalized = note?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      entities.remove(SavedItem.userNoteEntityKey);
+    } else {
+      entities[SavedItem.userNoteEntityKey] = normalized;
+    }
+    await _writeSynchronized(
+      existing,
+      SavedItemsCompanion(entities: Value(entities), updatedAt: Value(_now)),
+      SyncOperation.update,
     );
   }
 
@@ -217,23 +304,24 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
     return item;
   }
 
-  int _compareInbox(SavedItem a, SavedItem b) {
-    int rank(SavedItem item) {
-      if (item.status == SavedItemStatus.needsAction) return 0;
-      if (item.expiresAt != null) return 1;
-      if (item.status == SavedItemStatus.snoozed) return 2;
-      return 3;
+  Map<String, Object?> _withUserSource(
+    Map<String, Object?> entities, {
+    bool title = false,
+    bool category = false,
+  }) {
+    final updated = Map<String, Object?>.from(entities);
+    final current = updated[SavedItem.analysisMetadataEntityKey];
+    final metadata = current is Map
+        ? Map<String, Object?>.from(current)
+        : <String, Object?>{};
+    if (title) {
+      metadata['titleSource'] = SavedItemMetadataSource.user.storageValue;
     }
-
-    final byStatus = rank(a).compareTo(rank(b));
-    if (byStatus != 0) return byStatus;
-    if (a.expiresAt != null || b.expiresAt != null) {
-      if (a.expiresAt == null) return 1;
-      if (b.expiresAt == null) return -1;
-      final byExpiry = a.expiresAt!.compareTo(b.expiresAt!);
-      if (byExpiry != 0) return byExpiry;
+    if (category) {
+      metadata['categorySource'] = SavedItemMetadataSource.user.storageValue;
     }
-    return b.capturedAt.compareTo(a.capturedAt);
+    updated[SavedItem.analysisMetadataEntityKey] = metadata;
+    return updated;
   }
 
   SavedItem _fromRow(SavedItemRow row) => SavedItem(

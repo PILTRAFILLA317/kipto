@@ -46,7 +46,7 @@ void main() {
 
     await tester.tap(find.text('Library'));
     await tester.pumpAndSettle();
-    expect(find.text('8 active items'), findsOneWidget);
+    expect(find.text('10 items'), findsOneWidget);
 
     await tester.tap(find.text('Search'));
     await tester.pumpAndSettle();

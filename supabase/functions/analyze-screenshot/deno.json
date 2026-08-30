@@ -1,0 +1,14 @@
+{
+  "imports": {
+    "@supabase/server": "npm:@supabase/server@^1"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom", "dom.iterable"],
+    "strict": true
+  },
+  "fmt": {
+    "lineWidth": 90,
+    "semiColons": false,
+    "singleQuote": true
+  }
+}

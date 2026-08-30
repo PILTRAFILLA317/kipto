@@ -55,6 +55,24 @@ extension SavedItemStatusDisplay on SavedItemStatus {
   };
 }
 
+extension AnalysisStatusDisplay on AnalysisStatus {
+  String get label => switch (this) {
+    AnalysisStatus.unprocessed => 'Ready to analyze',
+    AnalysisStatus.processing => 'Analyzing…',
+    AnalysisStatus.processed => 'Analyzed',
+    AnalysisStatus.needsReview => 'Needs review',
+    AnalysisStatus.failed => 'Analysis failed',
+  };
+
+  IconData get icon => switch (this) {
+    AnalysisStatus.unprocessed => Icons.auto_awesome_outlined,
+    AnalysisStatus.processing => Icons.hourglass_top_rounded,
+    AnalysisStatus.processed => Icons.check_circle_outline,
+    AnalysisStatus.needsReview => Icons.rate_review_outlined,
+    AnalysisStatus.failed => Icons.error_outline,
+  };
+}
+
 extension SavedItemActionDisplay on SavedItemActionType {
   String get label => switch (this) {
     SavedItemActionType.addCalendar => 'Add to calendar',
@@ -66,5 +84,17 @@ extension SavedItemActionDisplay on SavedItemActionType {
     SavedItemActionType.trackPackage => 'Track package',
     SavedItemActionType.save => 'Save',
     SavedItemActionType.none => 'No action',
+  };
+
+  IconData get icon => switch (this) {
+    SavedItemActionType.addCalendar => Icons.event_available_outlined,
+    SavedItemActionType.createReminder => Icons.add_alert_outlined,
+    SavedItemActionType.openMaps => Icons.map_outlined,
+    SavedItemActionType.openUrl => Icons.open_in_new,
+    SavedItemActionType.webSearch => Icons.manage_search,
+    SavedItemActionType.copyCode => Icons.content_copy,
+    SavedItemActionType.trackPackage => Icons.local_shipping_outlined,
+    SavedItemActionType.save => Icons.bookmark_add_outlined,
+    SavedItemActionType.none => Icons.block,
   };
 }

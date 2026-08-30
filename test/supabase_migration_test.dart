@@ -6,6 +6,13 @@ void main() {
   final migration = File(
     'supabase/migrations/20260829000100_phase_3_cloud_sync.sql',
   ).readAsStringSync();
+  final analysisMigration = File(
+    'supabase/migrations/20260830000100_phase_5_ai_analysis.sql',
+  ).readAsStringSync();
+  final supabaseConfig = File('supabase/config.toml').readAsStringSync();
+  final analysisFunction = File(
+    'supabase/functions/analyze-screenshot/index.ts',
+  ).readAsStringSync();
 
   test('cloud migration enables owner-only RLS and least-privilege grants', () {
     for (final table in ['saved_items', 'reminders', 'devices']) {
@@ -43,5 +50,40 @@ void main() {
     expect(migration, isNot(contains('original_available')));
     expect(migration, isNot(contains('preview_cache_path')));
     expect(migration, isNot(contains('bytea')));
+  });
+
+  test('analysis usage is aggregate-only and unavailable to app roles', () {
+    expect(analysisMigration, contains('analysis_usage_daily'));
+    expect(analysisMigration, contains('request_count integer'));
+    expect(analysisMigration, contains('input_tokens bigint'));
+    expect(analysisMigration, contains('output_tokens bigint'));
+    expect(
+      analysisMigration,
+      contains(
+        'revoke all on table public.analysis_usage_daily from public, anon, authenticated;',
+      ),
+    );
+    expect(analysisMigration, isNot(contains('image_base64')));
+    expect(analysisMigration, isNot(contains('analysis_json')));
+  });
+
+  test('analysis quota reservation is atomic and server-controlled', () {
+    expect(analysisMigration, contains('kipto_consume_analysis_quota'));
+    expect(
+      analysisMigration,
+      contains('on conflict (user_id, usage_date) do update'),
+    );
+    expect(analysisMigration, contains('request_count < p_limit'));
+    expect(analysisMigration, contains('to service_role;'));
+    expect(analysisMigration, contains('from public, anon, authenticated;'));
+  });
+
+  test('analysis function keeps JWT verification and user authentication', () {
+    expect(
+      supabaseConfig,
+      contains('[functions.analyze-screenshot]\nverify_jwt = true'),
+    );
+    expect(analysisFunction, contains("withSupabase({ auth: 'user' }"));
+    expect(analysisFunction, isNot(contains("auth: 'none'")));
   });
 }

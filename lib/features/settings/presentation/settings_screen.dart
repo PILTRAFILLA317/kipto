@@ -6,6 +6,14 @@ import 'package:kipto/features/photo_library/presentation/widgets/screenshot_imp
 import 'package:kipto/core/auth/kipto_auth_state.dart';
 import 'package:kipto/core/providers/sync_providers.dart';
 import 'package:kipto/core/sync/sync_status.dart';
+import 'package:kipto/app/theme/theme_mode_controller.dart';
+import 'package:kipto/core/providers/time_provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:kipto/features/analysis/data/ai_analysis_preferences.dart';
+import 'package:kipto/features/analysis/domain/analysis_constants.dart';
+import 'package:kipto/features/analysis/domain/analysis_queue_models.dart';
+import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
+import 'package:kipto/features/analysis/presentation/widgets/analysis_queue_controls.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -22,11 +30,34 @@ class SettingsScreen extends ConsumerWidget {
         photoState.phase == ScreenshotImportPhase.ready ||
         photoState.phase == ScreenshotImportPhase.importing ||
         photoState.phase == ScreenshotImportPhase.completed;
+    final aiPreferences = ref.watch(aiAnalysisPreferencesProvider);
+    final analysisCounts =
+        ref.watch(analysisItemCountsProvider).valueOrNull ??
+        const AnalysisItemCounts(
+          unprocessed: 0,
+          analyzableUnprocessed: 0,
+          processing: 0,
+          processed: 0,
+          needsReview: 0,
+          failed: 0,
+        );
+    final analysisQueue =
+        ref.watch(analysisQueueStatusProvider).valueOrNull ??
+        const AnalysisQueueSnapshot();
+    final aiServerConfigured = ref.watch(aiServerConfiguredProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          _AccountSection(state: authState),
+          _CloudSyncSection(
+            authState: authState,
+            status: syncStatus,
+            now: ref.watch(currentTimeProvider),
+            onSync: () =>
+                ref.read(syncServiceProvider).syncNow(SyncReason.manual),
+          ),
           _ScreenshotHistorySection(
             state: photoState,
             onImportMore: photoController.showImportOptions,
@@ -36,18 +67,25 @@ class SettingsScreen extends ConsumerWidget {
             onOpenSettings: photoController.openSettings,
           ),
           if (showImporter) const ScreenshotImportPanel(),
-          _AccountSection(state: authState),
-          _CloudSyncSection(
-            authState: authState,
-            status: syncStatus,
-            onSync: () =>
-                ref.read(syncServiceProvider).syncNow(SyncReason.manual),
+          _AppearanceSection(
+            mode: ref.watch(themeModeProvider),
+            onChanged: ref.read(themeModeProvider.notifier).setMode,
           ),
-          const _SettingsSection(
-            title: 'AI & Privacy',
-            icon: Icons.shield_outlined,
-            primary: 'AI analysis not enabled yet',
-            secondary: 'No screenshot content is sent to an AI service.',
+          _AiPrivacySection(
+            preferences: aiPreferences,
+            counts: analysisCounts,
+            queue: analysisQueue,
+            serverConfigured: aiServerConfigured,
+            onEnabledChanged: (enabled) => _setAiEnabled(
+              context,
+              ref,
+              enabled,
+              currentlyEnabled: aiPreferences.enabled,
+            ),
+            onAnalyze: () =>
+                ref.read(analysisQueueRunnerProvider).enqueueUnprocessed(),
+            onPause: ref.read(analysisQueueRunnerProvider).pause,
+            onResume: ref.read(analysisQueueRunnerProvider).resume,
           ),
           const _SettingsSection(
             title: 'Notifications',
@@ -59,7 +97,140 @@ class SettingsScreen extends ConsumerWidget {
             title: 'About',
             icon: Icons.info_outline,
             primary: 'Kipto',
-            secondary: 'Keep what matters. Capture what comes next.',
+            secondary: 'Version 1.0.0 · An inbox for things you saved.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _setAiEnabled(
+    BuildContext context,
+    WidgetRef ref,
+    bool enabled, {
+    required bool currentlyEnabled,
+  }) async {
+    if (enabled == currentlyEnabled) return;
+    if (enabled) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Enable AI analysis?'),
+          content: const Text(
+            'To understand a screenshot, Kipto sends an optimized temporary '
+            'copy for AI analysis. The original remains in your photo library.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Enable AI analysis'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await ref.read(aiAnalysisPreferencesProvider.notifier).setEnabled(enabled);
+    await ref.read(analysisQueueRunnerProvider).setEnabled(enabled);
+  }
+}
+
+class _AiPrivacySection extends StatelessWidget {
+  const _AiPrivacySection({
+    required this.preferences,
+    required this.counts,
+    required this.queue,
+    required this.serverConfigured,
+    required this.onEnabledChanged,
+    required this.onAnalyze,
+    required this.onPause,
+    required this.onResume,
+  });
+
+  final AiAnalysisPreferencesState preferences;
+  final AnalysisItemCounts counts;
+  final AnalysisQueueSnapshot queue;
+  final bool serverConfigured;
+  final ValueChanged<bool> onEnabledChanged;
+  final VoidCallback onAnalyze;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+
+  @override
+  Widget build(BuildContext context) {
+    final notConfigured =
+        !serverConfigured || queue.lastErrorCode?.name == 'notConfigured';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'AI & Privacy',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.shield_outlined),
+                  title: const Text('AI analysis'),
+                  subtitle: Text(
+                    preferences.enabled
+                        ? 'New screenshots are analyzed automatically while Kipto is open.'
+                        : 'Screenshot content is not sent for analysis.',
+                  ),
+                  value: preferences.enabled,
+                  onChanged: preferences.loaded ? onEnabledChanged : null,
+                ),
+                if (notConfigured && preferences.enabled)
+                  const ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('AI analysis is not configured'),
+                    subtitle: Text(
+                      'Configure the Edge Function and OpenAI secret to analyze screenshots.',
+                    ),
+                  ),
+                if (preferences.enabled)
+                  AnalysisQueueControls(
+                    counts: counts,
+                    queue: queue,
+                    onAnalyze: onAnalyze,
+                    onPause: onPause,
+                    onResume: onResume,
+                  ),
+                if (preferences.enabled)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Unprocessed ${counts.unprocessed} · Failed ${counts.failed} · Needs review ${counts.needsReview}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (kDebugMode && preferences.enabled)
+                  ListTile(
+                    title: const Text('Analysis diagnostics'),
+                    subtitle: Text(
+                      'Queued ${queue.queued} · Processing ${queue.processing} · '
+                      'Schema $analysisSchemaVersion · Model $defaultAnalysisModel'
+                      '${queue.lastLatency == null ? '' : ' · ${queue.lastLatency!.inMilliseconds} ms'}'
+                      '${queue.lastErrorCode == null ? '' : ' · ${queue.lastErrorCode!.name}'}',
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -86,7 +257,7 @@ class _AccountSection extends StatelessWidget {
       return const _SettingsSection(
         title: 'Account',
         icon: Icons.cloud_done_outlined,
-        primary: 'Cloud sync active',
+        primary: 'Using Kipto without a permanent account',
         secondary:
             'Your library is linked to this installation. This anonymous '
             'account cannot yet be restored on another device. Account '
@@ -119,10 +290,12 @@ class _CloudSyncSection extends StatelessWidget {
   const _CloudSyncSection({
     required this.authState,
     required this.status,
+    required this.now,
     required this.onSync,
   });
   final KiptoAuthState? authState;
   final SyncStatusSnapshot? status;
+  final DateTime now;
   final VoidCallback onSync;
 
   @override
@@ -148,7 +321,7 @@ class _CloudSyncSection extends StatelessWidget {
               '${value.pendingCount} changes waiting.'
         : value.lastSuccessAt == null
         ? '${value.pendingCount} changes waiting to sync.'
-        : 'Last synced ${_relative(value.lastSuccessAt!)}. '
+        : 'Last synced ${_relative(value.lastSuccessAt!, now)}. '
               '${value.pendingCount} changes waiting.';
     return Padding(
       padding: const EdgeInsets.only(bottom: 26),
@@ -178,8 +351,8 @@ class _CloudSyncSection extends StatelessWidget {
     );
   }
 
-  static String _relative(DateTime value) {
-    final elapsed = DateTime.now().toUtc().difference(value.toUtc());
+  static String _relative(DateTime value, DateTime now) {
+    final elapsed = now.toUtc().difference(value.toUtc());
     if (elapsed.inMinutes < 1) return 'just now';
     if (elapsed.inHours < 1) return '${elapsed.inMinutes} minutes ago';
     if (elapsed.inDays < 1) return '${elapsed.inHours} hours ago';
@@ -213,7 +386,7 @@ class _ScreenshotHistorySection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              'Screenshot history',
+              'Screenshots',
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -286,6 +459,60 @@ class _ScreenshotHistorySection extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AppearanceSection extends StatelessWidget {
+  const _AppearanceSection({required this.mode, required this.onChanged});
+
+  final ThemeMode mode;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 26),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Appearance',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.brightness_6_outlined),
+                    SizedBox(width: 12),
+                    Text('Color mode'),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SegmentedButton<ThemeMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text('System'),
+                    ),
+                    ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                    ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                  ],
+                  selected: {mode},
+                  onSelectionChanged: (value) => onChanged(value.single),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SettingsSection extends StatelessWidget {

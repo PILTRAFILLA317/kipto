@@ -7,6 +7,9 @@ import 'package:kipto/features/photo_library/domain/screenshot_import_state.dart
 import 'package:kipto/features/photo_library/domain/screenshot_items_repository.dart';
 
 typedef ImportProgressCallback = void Function(ScreenshotImportProgress value);
+typedef ImportedScreenshotsCallback = Future<void> Function(
+  List<String> savedItemIds,
+);
 
 final class ScreenshotImportService {
   ScreenshotImportService({
@@ -14,6 +17,7 @@ final class ScreenshotImportService {
     required ScreenshotItemsRepository screenshotItems,
     required ScreenshotImportStateRepository importState,
     required DemoSeedService demoSeedService,
+    this.onImportedScreenshots,
     Clock? clock,
     this.pageSize = 100,
   }) : _photoLibrary = photoLibrary,
@@ -28,6 +32,7 @@ final class ScreenshotImportService {
   final DemoSeedService _demoSeedService;
   final Clock _clock;
   final int pageSize;
+  final ImportedScreenshotsCallback? onImportedScreenshots;
   bool _busy = false;
 
   bool get isBusy => _busy;
@@ -123,8 +128,20 @@ final class ScreenshotImportService {
     onProgress?.call(progress);
     await for (final batch in stream) {
       try {
+        final existing = await _screenshotItems.existingLocalAssetIds(
+          batch.map((asset) => asset.id),
+        );
         final inserted = await _screenshotItems.importAssets(batch);
         final skipped = batch.length - inserted;
+        if (inserted > 0 && onImportedScreenshots != null) {
+          final newAssetIds = batch
+              .map((asset) => asset.id)
+              .where((id) => !existing.contains(id));
+          final savedItems = await _screenshotItems.savedItemIdsForLocalAssets(
+            newAssetIds,
+          );
+          await onImportedScreenshots!(savedItems.values.toList());
+        }
         progress = progress.copyWith(
           processed: progress.processed + batch.length,
           imported: progress.imported + inserted,

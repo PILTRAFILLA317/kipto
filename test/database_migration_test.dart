@@ -9,7 +9,7 @@ import 'package:kipto/core/repositories/drift_reminders_repository.dart';
 import 'test_helpers.dart';
 
 void main() {
-  test('v1 through v3 preserves SavedItems and creates new state', () async {
+  test('v1 through v4 preserves SavedItems and creates new state', () async {
     final directory = await Directory.systemTemp.createTemp(
       'kipto-migration-test-',
     );
@@ -24,6 +24,7 @@ void main() {
     await setup.customStatement(
       'DROP INDEX saved_items_local_asset_id_unique_idx',
     );
+    await setup.customStatement('DROP TABLE analysis_queue');
     await setup.customStatement('PRAGMA user_version = 1');
     await setup.close();
 
@@ -41,7 +42,7 @@ void main() {
     expect(item?.id, 'phase-one-item');
     expect(state, isNull);
     expect(indexes, hasLength(1));
-    expect(migrated.schemaVersion, 3);
+    expect(migrated.schemaVersion, 4);
     expect(
       await migrated
           .customSelect(
@@ -51,9 +52,18 @@ void main() {
           .get(),
       hasLength(1),
     );
+    expect(
+      await migrated
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'analysis_queue'",
+          )
+          .get(),
+      hasLength(1),
+    );
   });
 
-  test('v2 to v3 preserves screenshot fields and reminders', () async {
+  test('v2 to v4 preserves screenshot fields and reminders', () async {
     final directory = await Directory.systemTemp.createTemp(
       'kipto-v3-migration-test-',
     );
@@ -83,6 +93,7 @@ void main() {
       'ALTER TABLE reminders DROP COLUMN remote_server_updated_at',
     );
     await setup.customStatement('DROP TABLE cloud_sync_states');
+    await setup.customStatement('DROP TABLE analysis_queue');
     await setup.customStatement('PRAGMA user_version = 2');
     await setup.close();
 
@@ -96,6 +107,10 @@ void main() {
       (await migrated.remindersDao.findById('phase-two-reminder'))?.savedItemId,
       'phase-two-item',
     );
-    expect(migrated.schemaVersion, 3);
+    expect(migrated.schemaVersion, 4);
+    expect(
+      await migrated.customSelect('SELECT * FROM analysis_queue').get(),
+      isEmpty,
+    );
   });
 }

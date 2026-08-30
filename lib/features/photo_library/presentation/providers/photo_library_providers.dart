@@ -10,6 +10,7 @@ import 'package:kipto/features/photo_library/domain/photo_library_models.dart';
 import 'package:kipto/features/photo_library/domain/photo_library_repository.dart';
 import 'package:kipto/features/photo_library/domain/screenshot_import_state.dart';
 import 'package:kipto/features/photo_library/domain/screenshot_items_repository.dart';
+import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
 
 final photoLibraryRepositoryProvider = Provider<PhotoLibraryRepository>((ref) {
   final repository = PhotoManagerPhotoLibraryRepository();
@@ -40,6 +41,11 @@ final screenshotImportServiceProvider = Provider<ScreenshotImportService>(
     screenshotItems: ref.watch(screenshotItemsRepositoryProvider),
     importState: ref.watch(screenshotImportStateRepositoryProvider),
     demoSeedService: ref.watch(demoSeedServiceProvider),
+    onImportedScreenshots: (savedItemIds) async {
+      await ref.read(aiAnalysisPreferencesProvider.notifier).load();
+      if (!ref.read(aiAnalysisPreferencesProvider).enabled) return;
+      await ref.read(analysisQueueRunnerProvider).enqueueMany(savedItemIds);
+    },
   ),
 );
 

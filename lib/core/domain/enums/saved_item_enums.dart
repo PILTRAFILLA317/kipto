@@ -18,6 +18,10 @@ enum SavedItemStatus { newItem, needsAction, snoozed, done, archived }
 
 enum AnalysisStatus { unprocessed, processing, processed, needsReview, failed }
 
+enum AnalysisRelevance { active, expired, obsolete, evergreen, unknown }
+
+enum SavedItemMetadataSource { system, analysis, user }
+
 enum SyncStatus {
   synced,
   pendingCreate,
@@ -79,6 +83,32 @@ extension AnalysisStatusStorage on AnalysisStatus {
 
   static AnalysisStatus fromStorage(String value) =>
       _parseEnum(value, AnalysisStatus.values, AnalysisStatus.needsReview);
+}
+
+extension AnalysisRelevanceStorage on AnalysisRelevance {
+  String get storageValue => name;
+
+  static AnalysisRelevance? tryParse(String value) {
+    for (final relevance in AnalysisRelevance.values) {
+      if (relevance.storageValue == value) return relevance;
+    }
+    return null;
+  }
+}
+
+extension SavedItemMetadataSourceStorage on SavedItemMetadataSource {
+  String get storageValue => name;
+
+  static SavedItemMetadataSource fromStorage(
+    Object? value, {
+    SavedItemMetadataSource fallback = SavedItemMetadataSource.system,
+  }) {
+    if (value is! String) return fallback;
+    return SavedItemMetadataSource.values.firstWhere(
+      (source) => source.storageValue == value,
+      orElse: () => fallback,
+    );
+  }
 }
 
 extension SyncStatusStorage on SyncStatus {

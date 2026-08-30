@@ -6,6 +6,7 @@ import 'package:kipto/features/photo_library/presentation/providers/photo_librar
 import 'package:kipto/features/photo_library/domain/photo_library_repository.dart';
 import 'package:kipto/core/providers/sync_providers.dart';
 import 'package:kipto/core/sync/sync_status.dart';
+import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
 
 final class PhotoLibraryLifecycle extends ConsumerStatefulWidget {
   const PhotoLibraryLifecycle({super.key, required this.child});
@@ -35,6 +36,7 @@ final class _PhotoLibraryLifecycleState
   Future<void> _start() async {
     final repository = ref.read(photoLibraryRepositoryProvider);
     _repository = repository;
+    final analysisInitialization = _initializeAnalysis();
     await ref.read(screenshotImportControllerProvider.notifier).initialize();
     _changesSubscription = repository.changes.listen((_) {
       if (!_active) return;
@@ -49,6 +51,23 @@ final class _PhotoLibraryLifecycleState
       await repository.startObservingChanges();
     }
     await ref.read(syncServiceProvider).initialize();
+    await analysisInitialization;
+    if (!mounted) return;
+    await ref.read(analysisQueueRunnerProvider).onForeground();
+  }
+
+  Future<void> _initializeAnalysis() async {
+    final preferences = ref.read(aiAnalysisPreferencesProvider.notifier);
+    await preferences.load();
+    if (!mounted) return;
+    final preferenceState = ref.read(aiAnalysisPreferencesProvider);
+    await ref
+        .read(analysisQueueRunnerProvider)
+        .initialize(
+          enabled: preferenceState.enabled,
+          userPaused: preferenceState.userPaused,
+          foreground: false,
+        );
   }
 
   @override
@@ -57,6 +76,7 @@ final class _PhotoLibraryLifecycleState
     if (_active) {
       unawaited(_resume());
     } else {
+      ref.read(analysisQueueRunnerProvider).onBackground();
       unawaited(_repository?.stopObservingChanges());
     }
   }
@@ -70,6 +90,7 @@ final class _PhotoLibraryLifecycleState
       await _repository?.stopObservingChanges();
     }
     await ref.read(syncServiceProvider).syncNow(SyncReason.resume);
+    await ref.read(analysisQueueRunnerProvider).onForeground();
   }
 
   @override

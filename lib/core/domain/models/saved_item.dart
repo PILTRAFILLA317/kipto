@@ -1,6 +1,9 @@
 import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 
 final class SavedItem {
+  static const userNoteEntityKey = 'userNote';
+  static const analysisMetadataEntityKey = '__kiptoAnalysis';
+
   const SavedItem({
     required this.id,
     required this.title,
@@ -64,4 +67,58 @@ final class SavedItem {
   final SyncStatus syncStatus;
   final DateTime? lastSyncedAt;
   final DateTime? remoteServerUpdatedAt;
+
+  String? get userNote {
+    final value = entities[userNoteEntityKey];
+    if (value is! String || value.trim().isEmpty) return null;
+    return value.trim();
+  }
+
+  Map<String, Object?> get detectedEntities => Map.unmodifiable(
+    Map<String, Object?>.from(entities)
+      ..remove(userNoteEntityKey)
+      ..remove(SavedItem.analysisMetadataEntityKey),
+  );
+
+  Map<String, Object?> get analysisMetadata {
+    final value = entities[SavedItem.analysisMetadataEntityKey];
+    if (value is! Map) return const {};
+    return Map.unmodifiable(Map<String, Object?>.from(value));
+  }
+
+  SavedItemMetadataSource get titleSource =>
+      SavedItemMetadataSourceStorage.fromStorage(
+        analysisMetadata['titleSource'],
+      );
+
+  SavedItemMetadataSource get categorySource =>
+      SavedItemMetadataSourceStorage.fromStorage(
+        analysisMetadata['categorySource'],
+      );
+
+  String? get analysisModel => analysisMetadata['model'] as String?;
+  String? get analysisPromptVersion =>
+      analysisMetadata['promptVersion'] as String?;
+  String? get sourceApp => analysisMetadata['sourceApp'] as String?;
+  bool get requiresAction => analysisMetadata['requiresAction'] == true;
+
+  DateTime? get analyzedAt {
+    final value = analysisMetadata['analyzedAt'];
+    return value is String ? DateTime.tryParse(value)?.toUtc() : null;
+  }
+
+  AnalysisRelevance get relevance =>
+      AnalysisRelevanceStorage.tryParse(
+        analysisMetadata['relevance'] as String? ?? '',
+      ) ??
+      AnalysisRelevance.unknown;
+
+  List<String> get uncertainFields => _metadataStrings('uncertainFields');
+  List<String> get searchKeywords => _metadataStrings('searchKeywords');
+
+  List<String> _metadataStrings(String key) {
+    final value = analysisMetadata[key];
+    if (value is! List) return const [];
+    return List.unmodifiable(value.whereType<String>());
+  }
 }

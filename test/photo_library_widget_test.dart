@@ -52,8 +52,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Turn screenshots into useful actions'), findsOneWidget);
-    expect(find.text('Allow access'), findsOneWidget);
+    expect(
+      find.text('Your screenshots are unfinished actions'),
+      findsOneWidget,
+    );
+    expect(find.text('Allow access to screenshots'), findsOneWidget);
     await disposeApp(tester);
   });
 
@@ -80,11 +83,25 @@ void main() {
       initialImportCompleted: true,
     );
 
+    expect(find.text('Kipto can see selected photos only.'), findsOneWidget);
+    expect(find.text('Manage access'), findsOneWidget);
+    await disposeApp(tester);
+  });
+
+  testWidgets('completed empty import teaches how to add screenshots', (
+    tester,
+  ) async {
+    await pumpKipto(
+      tester,
+      photoLibrary: FakePhotoLibraryRepository(),
+      initialImportCompleted: true,
+    );
+
+    expect(find.text('No screenshots yet'), findsOneWidget);
     expect(
-      find.text('Kipto only has access to selected photos.'),
+      find.text('Take a screenshot or import your existing ones.'),
       findsOneWidget,
     );
-    expect(find.text('Manage access'), findsOneWidget);
     await disposeApp(tester);
   });
 

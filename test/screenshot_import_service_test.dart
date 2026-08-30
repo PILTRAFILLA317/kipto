@@ -32,6 +32,7 @@ void main() {
     Iterable<LocalScreenshotAsset> source = const [],
     PhotoAccessStatus permission = PhotoAccessStatus.authorized,
     int pageSize = 100,
+    ImportedScreenshotsCallback? onImportedScreenshots,
   }) {
     photoLibrary = FakePhotoLibraryRepository(
       permission: permission,
@@ -48,6 +49,7 @@ void main() {
       demoSeedService: DemoSeedService(database),
       clock: Clock.fixed(now),
       pageSize: pageSize,
+      onImportedScreenshots: onImportedScreenshots,
     );
   }
 
@@ -127,6 +129,42 @@ void main() {
     expect(result.imported, 1);
     expect(await itemsRepository.countImported(), 4);
   });
+
+  test(
+    'new screenshots queue only when the device AI opt-in is enabled',
+    () async {
+      var enabled = false;
+      final queued = <String>[];
+      configure(
+        source: assets(2),
+        onImportedScreenshots: (savedItemIds) async {
+          if (enabled) queued.addAll(savedItemIds);
+        },
+      );
+
+      await service.import(ScreenshotImportScope.all);
+      expect(queued, isEmpty);
+
+      enabled = true;
+      photoLibrary.add(
+        LocalScreenshotAsset(
+          id: 'asset-new-enabled',
+          capturedAt: now.add(const Duration(minutes: 1)),
+          width: 1170,
+          height: 2532,
+        ),
+      );
+      await service.scanIncremental();
+      expect(queued, hasLength(1));
+
+      await service.scanIncremental();
+      expect(
+        queued,
+        hasLength(1),
+        reason: 'Duplicate imports must not requeue',
+      );
+    },
+  );
 
   test('reconciliation keeps item and toggles original availability', () async {
     configure(source: assets(1));

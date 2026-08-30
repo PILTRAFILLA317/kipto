@@ -30,6 +30,11 @@ final class DriftScreenshotItemsRepository
       (await _database.savedItemsDao.getExistingLocalAssetIds(ids)).toSet();
 
   @override
+  Future<Map<String, String>> savedItemIdsForLocalAssets(
+    Iterable<String> localAssetIds,
+  ) => _database.savedItemsDao.getSavedItemIdsByLocalAssetIds(localAssetIds);
+
+  @override
   Future<int> importAssets(List<LocalScreenshotAsset> assets) async {
     if (assets.isEmpty) return 0;
     final existing = await existingLocalAssetIds(
