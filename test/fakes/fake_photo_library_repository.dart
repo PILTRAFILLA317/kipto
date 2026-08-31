@@ -11,6 +11,7 @@ final class FakePhotoLibraryRepository implements PhotoLibraryRepository {
 
   PhotoAccessStatus permission;
   final List<LocalScreenshotAsset> _assets;
+  final Map<String, LocalAssetThumbnailData> _thumbnails = {};
   final StreamController<void> _changes = StreamController<void>.broadcast();
   bool settingsOpened = false;
   bool limitedAccessManaged = false;
@@ -27,6 +28,10 @@ final class FakePhotoLibraryRepository implements PhotoLibraryRepository {
   void remove(String id) {
     _assets.removeWhere((asset) => asset.id == id);
     _changes.add(null);
+  }
+
+  void setThumbnail(String id, LocalAssetThumbnailData data) {
+    _thumbnails[id] = data;
   }
 
   @override
@@ -86,7 +91,7 @@ final class FakePhotoLibraryRepository implements PhotoLibraryRepository {
     String localAssetId, {
     required int width,
     required int height,
-  }) async => null;
+  }) async => _thumbnails[localAssetId];
 
   @override
   Stream<void> get changes => _changes.stream;

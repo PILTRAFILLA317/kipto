@@ -4082,6 +4082,503 @@ class CloudSyncStatesCompanion extends UpdateCompanion<CloudSyncStateRow> {
   }
 }
 
+class $PreviewTransferJobsTable extends PreviewTransferJobs
+    with TableInfo<$PreviewTransferJobsTable, PreviewTransferJobRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PreviewTransferJobsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _savedItemIdMeta = const VerificationMeta(
+    'savedItemId',
+  );
+  @override
+  late final GeneratedColumn<String> savedItemId = GeneratedColumn<String>(
+    'saved_item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES saved_items (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _operationMeta = const VerificationMeta(
+    'operation',
+  );
+  @override
+  late final GeneratedColumn<String> operation = GeneratedColumn<String>(
+    'operation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attemptCountMeta = const VerificationMeta(
+    'attemptCount',
+  );
+  @override
+  late final GeneratedColumn<int> attemptCount = GeneratedColumn<int>(
+    'attempt_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _nextAttemptAtMeta = const VerificationMeta(
+    'nextAttemptAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextAttemptAt =
+      GeneratedColumn<DateTime>(
+        'next_attempt_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastErrorCodeMeta = const VerificationMeta(
+    'lastErrorCode',
+  );
+  @override
+  late final GeneratedColumn<String> lastErrorCode = GeneratedColumn<String>(
+    'last_error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    savedItemId,
+    operation,
+    state,
+    attemptCount,
+    nextAttemptAt,
+    lastErrorCode,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'preview_transfer_jobs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PreviewTransferJobRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('saved_item_id')) {
+      context.handle(
+        _savedItemIdMeta,
+        savedItemId.isAcceptableOrUnknown(
+          data['saved_item_id']!,
+          _savedItemIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_savedItemIdMeta);
+    }
+    if (data.containsKey('operation')) {
+      context.handle(
+        _operationMeta,
+        operation.isAcceptableOrUnknown(data['operation']!, _operationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_operationMeta);
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('attempt_count')) {
+      context.handle(
+        _attemptCountMeta,
+        attemptCount.isAcceptableOrUnknown(
+          data['attempt_count']!,
+          _attemptCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_attempt_at')) {
+      context.handle(
+        _nextAttemptAtMeta,
+        nextAttemptAt.isAcceptableOrUnknown(
+          data['next_attempt_at']!,
+          _nextAttemptAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error_code')) {
+      context.handle(
+        _lastErrorCodeMeta,
+        lastErrorCode.isAcceptableOrUnknown(
+          data['last_error_code']!,
+          _lastErrorCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {savedItemId};
+  @override
+  PreviewTransferJobRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PreviewTransferJobRow(
+      savedItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}saved_item_id'],
+      )!,
+      operation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      attemptCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempt_count'],
+      )!,
+      nextAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_attempt_at'],
+      ),
+      lastErrorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error_code'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PreviewTransferJobsTable createAlias(String alias) {
+    return $PreviewTransferJobsTable(attachedDatabase, alias);
+  }
+}
+
+class PreviewTransferJobRow extends DataClass
+    implements Insertable<PreviewTransferJobRow> {
+  final String savedItemId;
+  final String operation;
+  final String state;
+  final int attemptCount;
+  final DateTime? nextAttemptAt;
+  final String? lastErrorCode;
+  final DateTime createdAt;
+  const PreviewTransferJobRow({
+    required this.savedItemId,
+    required this.operation,
+    required this.state,
+    required this.attemptCount,
+    this.nextAttemptAt,
+    this.lastErrorCode,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['saved_item_id'] = Variable<String>(savedItemId);
+    map['operation'] = Variable<String>(operation);
+    map['state'] = Variable<String>(state);
+    map['attempt_count'] = Variable<int>(attemptCount);
+    if (!nullToAbsent || nextAttemptAt != null) {
+      map['next_attempt_at'] = Variable<DateTime>(nextAttemptAt);
+    }
+    if (!nullToAbsent || lastErrorCode != null) {
+      map['last_error_code'] = Variable<String>(lastErrorCode);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PreviewTransferJobsCompanion toCompanion(bool nullToAbsent) {
+    return PreviewTransferJobsCompanion(
+      savedItemId: Value(savedItemId),
+      operation: Value(operation),
+      state: Value(state),
+      attemptCount: Value(attemptCount),
+      nextAttemptAt: nextAttemptAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextAttemptAt),
+      lastErrorCode: lastErrorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastErrorCode),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PreviewTransferJobRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PreviewTransferJobRow(
+      savedItemId: serializer.fromJson<String>(json['savedItemId']),
+      operation: serializer.fromJson<String>(json['operation']),
+      state: serializer.fromJson<String>(json['state']),
+      attemptCount: serializer.fromJson<int>(json['attemptCount']),
+      nextAttemptAt: serializer.fromJson<DateTime?>(json['nextAttemptAt']),
+      lastErrorCode: serializer.fromJson<String?>(json['lastErrorCode']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'savedItemId': serializer.toJson<String>(savedItemId),
+      'operation': serializer.toJson<String>(operation),
+      'state': serializer.toJson<String>(state),
+      'attemptCount': serializer.toJson<int>(attemptCount),
+      'nextAttemptAt': serializer.toJson<DateTime?>(nextAttemptAt),
+      'lastErrorCode': serializer.toJson<String?>(lastErrorCode),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PreviewTransferJobRow copyWith({
+    String? savedItemId,
+    String? operation,
+    String? state,
+    int? attemptCount,
+    Value<DateTime?> nextAttemptAt = const Value.absent(),
+    Value<String?> lastErrorCode = const Value.absent(),
+    DateTime? createdAt,
+  }) => PreviewTransferJobRow(
+    savedItemId: savedItemId ?? this.savedItemId,
+    operation: operation ?? this.operation,
+    state: state ?? this.state,
+    attemptCount: attemptCount ?? this.attemptCount,
+    nextAttemptAt: nextAttemptAt.present
+        ? nextAttemptAt.value
+        : this.nextAttemptAt,
+    lastErrorCode: lastErrorCode.present
+        ? lastErrorCode.value
+        : this.lastErrorCode,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  PreviewTransferJobRow copyWithCompanion(PreviewTransferJobsCompanion data) {
+    return PreviewTransferJobRow(
+      savedItemId: data.savedItemId.present
+          ? data.savedItemId.value
+          : this.savedItemId,
+      operation: data.operation.present ? data.operation.value : this.operation,
+      state: data.state.present ? data.state.value : this.state,
+      attemptCount: data.attemptCount.present
+          ? data.attemptCount.value
+          : this.attemptCount,
+      nextAttemptAt: data.nextAttemptAt.present
+          ? data.nextAttemptAt.value
+          : this.nextAttemptAt,
+      lastErrorCode: data.lastErrorCode.present
+          ? data.lastErrorCode.value
+          : this.lastErrorCode,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PreviewTransferJobRow(')
+          ..write('savedItemId: $savedItemId, ')
+          ..write('operation: $operation, ')
+          ..write('state: $state, ')
+          ..write('attemptCount: $attemptCount, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
+          ..write('lastErrorCode: $lastErrorCode, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    savedItemId,
+    operation,
+    state,
+    attemptCount,
+    nextAttemptAt,
+    lastErrorCode,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PreviewTransferJobRow &&
+          other.savedItemId == this.savedItemId &&
+          other.operation == this.operation &&
+          other.state == this.state &&
+          other.attemptCount == this.attemptCount &&
+          other.nextAttemptAt == this.nextAttemptAt &&
+          other.lastErrorCode == this.lastErrorCode &&
+          other.createdAt == this.createdAt);
+}
+
+class PreviewTransferJobsCompanion
+    extends UpdateCompanion<PreviewTransferJobRow> {
+  final Value<String> savedItemId;
+  final Value<String> operation;
+  final Value<String> state;
+  final Value<int> attemptCount;
+  final Value<DateTime?> nextAttemptAt;
+  final Value<String?> lastErrorCode;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const PreviewTransferJobsCompanion({
+    this.savedItemId = const Value.absent(),
+    this.operation = const Value.absent(),
+    this.state = const Value.absent(),
+    this.attemptCount = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
+    this.lastErrorCode = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PreviewTransferJobsCompanion.insert({
+    required String savedItemId,
+    required String operation,
+    required String state,
+    this.attemptCount = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
+    this.lastErrorCode = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : savedItemId = Value(savedItemId),
+       operation = Value(operation),
+       state = Value(state),
+       createdAt = Value(createdAt);
+  static Insertable<PreviewTransferJobRow> custom({
+    Expression<String>? savedItemId,
+    Expression<String>? operation,
+    Expression<String>? state,
+    Expression<int>? attemptCount,
+    Expression<DateTime>? nextAttemptAt,
+    Expression<String>? lastErrorCode,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (savedItemId != null) 'saved_item_id': savedItemId,
+      if (operation != null) 'operation': operation,
+      if (state != null) 'state': state,
+      if (attemptCount != null) 'attempt_count': attemptCount,
+      if (nextAttemptAt != null) 'next_attempt_at': nextAttemptAt,
+      if (lastErrorCode != null) 'last_error_code': lastErrorCode,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PreviewTransferJobsCompanion copyWith({
+    Value<String>? savedItemId,
+    Value<String>? operation,
+    Value<String>? state,
+    Value<int>? attemptCount,
+    Value<DateTime?>? nextAttemptAt,
+    Value<String?>? lastErrorCode,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return PreviewTransferJobsCompanion(
+      savedItemId: savedItemId ?? this.savedItemId,
+      operation: operation ?? this.operation,
+      state: state ?? this.state,
+      attemptCount: attemptCount ?? this.attemptCount,
+      nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
+      lastErrorCode: lastErrorCode ?? this.lastErrorCode,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (savedItemId.present) {
+      map['saved_item_id'] = Variable<String>(savedItemId.value);
+    }
+    if (operation.present) {
+      map['operation'] = Variable<String>(operation.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (attemptCount.present) {
+      map['attempt_count'] = Variable<int>(attemptCount.value);
+    }
+    if (nextAttemptAt.present) {
+      map['next_attempt_at'] = Variable<DateTime>(nextAttemptAt.value);
+    }
+    if (lastErrorCode.present) {
+      map['last_error_code'] = Variable<String>(lastErrorCode.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PreviewTransferJobsCompanion(')
+          ..write('savedItemId: $savedItemId, ')
+          ..write('operation: $operation, ')
+          ..write('state: $state, ')
+          ..write('attemptCount: $attemptCount, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
+          ..write('lastErrorCode: $lastErrorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4093,6 +4590,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CloudSyncStatesTable cloudSyncStates = $CloudSyncStatesTable(
     this,
   );
+  late final $PreviewTransferJobsTable previewTransferJobs =
+      $PreviewTransferJobsTable(this);
   late final Index savedItemsStatusIdx = Index(
     'saved_items_status_idx',
     'CREATE INDEX saved_items_status_idx ON saved_items (status)',
@@ -4137,6 +4636,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'sync_queue_entity_idx',
     'CREATE INDEX sync_queue_entity_idx ON sync_queue (entity_type, entity_id)',
   );
+  late final Index previewTransferJobsDueIdx = Index(
+    'preview_transfer_jobs_due_idx',
+    'CREATE INDEX preview_transfer_jobs_due_idx ON preview_transfer_jobs (state, next_attempt_at, created_at)',
+  );
   late final SavedItemsDao savedItemsDao = SavedItemsDao(this as AppDatabase);
   late final RemindersDao remindersDao = RemindersDao(this as AppDatabase);
   late final SyncQueueDao syncQueueDao = SyncQueueDao(this as AppDatabase);
@@ -4152,6 +4655,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncQueue,
     screenshotImportStates,
     cloudSyncStates,
+    previewTransferJobs,
     savedItemsStatusIdx,
     savedItemsCategoryIdx,
     savedItemsCapturedAtIdx,
@@ -4163,7 +4667,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     remindersDeletedAtIdx,
     syncQueueCreatedAtIdx,
     syncQueueEntityIdx,
+    previewTransferJobsDueIdx,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'saved_items',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('preview_transfer_jobs', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$SavedItemsTableCreateCompanionBuilder = SavedItemsCompanion Function({
@@ -4250,6 +4765,30 @@ final class $$SavedItemsTableReferences
     ).filter((f) => f.savedItemId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PreviewTransferJobsTable,
+    List<PreviewTransferJobRow>
+  >
+  _previewTransferJobsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.previewTransferJobs,
+        aliasName: 'saved_items__id__preview_transfer_jobs__saved_item_id',
+      );
+
+  $$PreviewTransferJobsTableProcessedTableManager get previewTransferJobsRefs {
+    final manager = $$PreviewTransferJobsTableTableManager(
+      $_db,
+      $_db.previewTransferJobs,
+    ).filter((f) => f.savedItemId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _previewTransferJobsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -4445,6 +4984,31 @@ class $$SavedItemsTableFilterComposer
           }) => $$RemindersTableFilterComposer(
             $db: $db,
             $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> previewTransferJobsRefs(
+    Expression<bool> Function($$PreviewTransferJobsTableFilterComposer f) f,
+  ) {
+    final $$PreviewTransferJobsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.previewTransferJobs,
+      getReferencedColumn: (t) => t.savedItemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PreviewTransferJobsTableFilterComposer(
+            $db: $db,
+            $table: $db.previewTransferJobs,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4767,6 +5331,32 @@ class $$SavedItemsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> previewTransferJobsRefs<T extends Object>(
+    Expression<T> Function($$PreviewTransferJobsTableAnnotationComposer a) f,
+  ) {
+    final $$PreviewTransferJobsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.previewTransferJobs,
+          getReferencedColumn: (t) => t.savedItemId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PreviewTransferJobsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.previewTransferJobs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$SavedItemsTableTableManager
@@ -4782,7 +5372,10 @@ class $$SavedItemsTableTableManager
           $$SavedItemsTableUpdateCompanionBuilder,
           (SavedItemRow, $$SavedItemsTableReferences),
           SavedItemRow,
-          PrefetchHooks Function({bool remindersRefs})
+          PrefetchHooks Function({
+            bool remindersRefs,
+            bool previewTransferJobsRefs,
+          })
         > {
   $$SavedItemsTableTableManager(_$AppDatabase db, $SavedItemsTable table)
     : super(
@@ -4937,38 +5530,63 @@ class $$SavedItemsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({remindersRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (remindersRefs) db.reminders],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (remindersRefs)
-                    await $_getPrefetchedData<
-                      SavedItemRow,
-                      $SavedItemsTable,
-                      ReminderRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SavedItemsTableReferences
-                          ._remindersRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$SavedItemsTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).remindersRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.savedItemId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({remindersRefs = false, previewTransferJobsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (remindersRefs) db.reminders,
+                    if (previewTransferJobsRefs) db.previewTransferJobs,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (remindersRefs)
+                        await $_getPrefetchedData<
+                          SavedItemRow,
+                          $SavedItemsTable,
+                          ReminderRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SavedItemsTableReferences
+                              ._remindersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SavedItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).remindersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.savedItemId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (previewTransferJobsRefs)
+                        await $_getPrefetchedData<
+                          SavedItemRow,
+                          $SavedItemsTable,
+                          PreviewTransferJobRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SavedItemsTableReferences
+                              ._previewTransferJobsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SavedItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).previewTransferJobsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.savedItemId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4985,7 +5603,7 @@ typedef $$SavedItemsTableProcessedTableManager =
       $$SavedItemsTableUpdateCompanionBuilder,
       (SavedItemRow, $$SavedItemsTableReferences),
       SavedItemRow,
-      PrefetchHooks Function({bool remindersRefs})
+      PrefetchHooks Function({bool remindersRefs, bool previewTransferJobsRefs})
     >;
 typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   required String id,
@@ -6269,6 +6887,382 @@ typedef $$CloudSyncStatesTableProcessedTableManager =
       CloudSyncStateRow,
       PrefetchHooks Function()
     >;
+typedef $$PreviewTransferJobsTableCreateCompanionBuilder =
+    PreviewTransferJobsCompanion Function({
+      required String savedItemId,
+      required String operation,
+      required String state,
+      Value<int> attemptCount,
+      Value<DateTime?> nextAttemptAt,
+      Value<String?> lastErrorCode,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$PreviewTransferJobsTableUpdateCompanionBuilder =
+    PreviewTransferJobsCompanion Function({
+      Value<String> savedItemId,
+      Value<String> operation,
+      Value<String> state,
+      Value<int> attemptCount,
+      Value<DateTime?> nextAttemptAt,
+      Value<String?> lastErrorCode,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$PreviewTransferJobsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PreviewTransferJobsTable,
+          PreviewTransferJobRow
+        > {
+  $$PreviewTransferJobsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SavedItemsTable _savedItemIdTable(_$AppDatabase db) => db.savedItems
+      .createAlias('preview_transfer_jobs__saved_item_id__saved_items__id');
+
+  $$SavedItemsTableProcessedTableManager get savedItemId {
+    final $_column = $_itemColumn<String>('saved_item_id')!;
+
+    final manager = $$SavedItemsTableTableManager(
+      $_db,
+      $_db.savedItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_savedItemIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PreviewTransferJobsTableFilterComposer
+    extends Composer<_$AppDatabase, $PreviewTransferJobsTable> {
+  $$PreviewTransferJobsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastErrorCode => $composableBuilder(
+    column: $table.lastErrorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SavedItemsTableFilterComposer get savedItemId {
+    final $$SavedItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.savedItemId,
+      referencedTable: $db.savedItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.savedItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PreviewTransferJobsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PreviewTransferJobsTable> {
+  $$PreviewTransferJobsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastErrorCode => $composableBuilder(
+    column: $table.lastErrorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SavedItemsTableOrderingComposer get savedItemId {
+    final $$SavedItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.savedItemId,
+      referencedTable: $db.savedItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.savedItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PreviewTransferJobsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PreviewTransferJobsTable> {
+  $$PreviewTransferJobsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get operation =>
+      $composableBuilder(column: $table.operation, builder: (column) => column);
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<int> get attemptCount => $composableBuilder(
+    column: $table.attemptCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastErrorCode => $composableBuilder(
+    column: $table.lastErrorCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$SavedItemsTableAnnotationComposer get savedItemId {
+    final $$SavedItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.savedItemId,
+      referencedTable: $db.savedItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SavedItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.savedItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PreviewTransferJobsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PreviewTransferJobsTable,
+          PreviewTransferJobRow,
+          $$PreviewTransferJobsTableFilterComposer,
+          $$PreviewTransferJobsTableOrderingComposer,
+          $$PreviewTransferJobsTableAnnotationComposer,
+          $$PreviewTransferJobsTableCreateCompanionBuilder,
+          $$PreviewTransferJobsTableUpdateCompanionBuilder,
+          (PreviewTransferJobRow, $$PreviewTransferJobsTableReferences),
+          PreviewTransferJobRow,
+          PrefetchHooks Function({bool savedItemId})
+        > {
+  $$PreviewTransferJobsTableTableManager(
+    _$AppDatabase db,
+    $PreviewTransferJobsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PreviewTransferJobsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PreviewTransferJobsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PreviewTransferJobsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> savedItemId = const Value.absent(),
+                Value<String> operation = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<int> attemptCount = const Value.absent(),
+                Value<DateTime?> nextAttemptAt = const Value.absent(),
+                Value<String?> lastErrorCode = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PreviewTransferJobsCompanion(
+                savedItemId: savedItemId,
+                operation: operation,
+                state: state,
+                attemptCount: attemptCount,
+                nextAttemptAt: nextAttemptAt,
+                lastErrorCode: lastErrorCode,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String savedItemId,
+                required String operation,
+                required String state,
+                Value<int> attemptCount = const Value.absent(),
+                Value<DateTime?> nextAttemptAt = const Value.absent(),
+                Value<String?> lastErrorCode = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PreviewTransferJobsCompanion.insert(
+                savedItemId: savedItemId,
+                operation: operation,
+                state: state,
+                attemptCount: attemptCount,
+                nextAttemptAt: nextAttemptAt,
+                lastErrorCode: lastErrorCode,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PreviewTransferJobsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({savedItemId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (savedItemId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.savedItemId,
+                        referencedTable: $$PreviewTransferJobsTableReferences
+                            ._savedItemIdTable(db),
+                        referencedColumn: $$PreviewTransferJobsTableReferences
+                            ._savedItemIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PreviewTransferJobsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PreviewTransferJobsTable,
+      PreviewTransferJobRow,
+      $$PreviewTransferJobsTableFilterComposer,
+      $$PreviewTransferJobsTableOrderingComposer,
+      $$PreviewTransferJobsTableAnnotationComposer,
+      $$PreviewTransferJobsTableCreateCompanionBuilder,
+      $$PreviewTransferJobsTableUpdateCompanionBuilder,
+      (PreviewTransferJobRow, $$PreviewTransferJobsTableReferences),
+      PreviewTransferJobRow,
+      PrefetchHooks Function({bool savedItemId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6286,4 +7280,6 @@ class $AppDatabaseManager {
       );
   $$CloudSyncStatesTableTableManager get cloudSyncStates =>
       $$CloudSyncStatesTableTableManager(_db, _db.cloudSyncStates);
+  $$PreviewTransferJobsTableTableManager get previewTransferJobs =>
+      $$PreviewTransferJobsTableTableManager(_db, _db.previewTransferJobs);
 }

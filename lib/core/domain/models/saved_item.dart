@@ -3,6 +3,7 @@ import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 final class SavedItem {
   static const userNoteEntityKey = 'userNote';
   static const analysisMetadataEntityKey = '__kiptoAnalysis';
+  static const completedActionsEntityKey = '__kiptoCompletedActions';
 
   const SavedItem({
     required this.id,
@@ -77,8 +78,31 @@ final class SavedItem {
   Map<String, Object?> get detectedEntities => Map.unmodifiable(
     Map<String, Object?>.from(entities)
       ..remove(userNoteEntityKey)
-      ..remove(SavedItem.analysisMetadataEntityKey),
+      ..remove(SavedItem.analysisMetadataEntityKey)
+      ..remove(SavedItem.completedActionsEntityKey),
   );
+
+  Map<SavedItemActionType, DateTime> get completedActions {
+    final raw = entities[completedActionsEntityKey];
+    if (raw is! Map) return const {};
+    final output = <SavedItemActionType, DateTime>{};
+    for (final entry in raw.entries) {
+      if (entry.key is! String || entry.value is! String) continue;
+      final action = SavedItemActionType.values
+          .where((candidate) => candidate.storageValue == entry.key)
+          .firstOrNull;
+      final completedAt = DateTime.tryParse(entry.value as String)?.toUtc();
+      if (action != null &&
+          action != SavedItemActionType.none &&
+          completedAt != null) {
+        output[action] = completedAt;
+      }
+    }
+    return Map.unmodifiable(output);
+  }
+
+  bool hasCompletedAction(SavedItemActionType action) =>
+      completedActions.containsKey(action);
 
   Map<String, Object?> get analysisMetadata {
     final value = entities[SavedItem.analysisMetadataEntityKey];

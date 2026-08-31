@@ -9,6 +9,12 @@ void main() {
   final analysisMigration = File(
     'supabase/migrations/20260830000100_phase_5_ai_analysis.sql',
   ).readAsStringSync();
+  final actionCompletionMigration = File(
+    'supabase/migrations/20260830000200_phase_6_action_completion_merge.sql',
+  ).readAsStringSync();
+  final previewMigration = File(
+    'supabase/migrations/20260830000300_phase_7_private_previews.sql',
+  ).readAsStringSync();
   final supabaseConfig = File('supabase/config.toml').readAsStringSync();
   final analysisFunction = File(
     'supabase/functions/analyze-screenshot/index.ts',
@@ -85,5 +91,58 @@ void main() {
     );
     expect(analysisFunction, contains("withSupabase({ auth: 'user' }"));
     expect(analysisFunction, isNot(contains("auth: 'none'")));
+  });
+
+  test('completed actions merge by action key and newest valid timestamp', () {
+    expect(
+      actionCompletionMigration,
+      contains("old.entities_json -> '__kiptoCompletedActions'"),
+    );
+    expect(
+      actionCompletionMigration,
+      contains("new.entities_json -> '__kiptoCompletedActions'"),
+    );
+    expect(actionCompletionMigration, contains('jsonb_each_text(old_actions)'));
+    expect(
+      actionCompletionMigration,
+      contains('old_completed > new_completed'),
+    );
+    expect(
+      actionCompletionMigration,
+      contains("('addCalendar', 'createReminder', 'save')"),
+    );
+    expect(
+      actionCompletionMigration,
+      contains('new.client_updated_at < old.client_updated_at'),
+    );
+    expect(
+      actionCompletionMigration,
+      contains('drop trigger if exists saved_items_set_server_updated_at'),
+    );
+    expect(
+      actionCompletionMigration,
+      contains('before update on public.saved_items'),
+    );
+  });
+
+  test('notification projection stays out of the cloud schema', () {
+    final cloudSchema =
+        '$migration\n$analysisMigration\n$actionCompletionMigration';
+    expect(cloudSchema, isNot(contains('notification_mappings')));
+    expect(cloudSchema, isNot(contains('notification_id')));
+    expect(cloudSchema, isNot(contains('notifications_enabled')));
+  });
+
+  test('preview bucket is private and paths are scoped to auth uid', () {
+    expect(previewMigration, contains("'kipto-previews'"));
+    expect(previewMigration, contains('public = false'));
+    expect(previewMigration, contains("array['image/jpeg', 'image/webp']"));
+    expect(RegExp(r'create policy').allMatches(previewMigration), hasLength(4));
+    expect(
+      previewMigration,
+      contains("(storage.foldername(name))[1] = (select auth.uid())::text"),
+    );
+    expect(previewMigration, isNot(contains('using (true)')));
+    expect(previewMigration, isNot(contains('create public')));
   });
 }

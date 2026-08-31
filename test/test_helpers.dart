@@ -54,3 +54,38 @@ SavedItem testSavedItem({
     syncStatus: syncStatus,
   );
 }
+
+extension SavedItemTestCopy on SavedItem {
+  SavedItem copyWithCloudPath(String path) => SavedItem(
+    id: id,
+    ownerId: ownerId,
+    title: title,
+    summary: summary,
+    category: category,
+    subtype: subtype,
+    intent: intent,
+    status: status,
+    favorite: favorite,
+    capturedAt: capturedAt,
+    eventAt: eventAt,
+    expiresAt: expiresAt,
+    snoozedUntil: snoozedUntil,
+    location: location,
+    entities: entities,
+    availableActions: availableActions,
+    cloudPreviewPath: path,
+    imageHash: imageHash,
+    analysisStatus: analysisStatus,
+    analysisVersion: analysisVersion,
+    confidence: confidence,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+    localAssetId: localAssetId,
+    originalAvailable: originalAvailable,
+    previewCachePath: previewCachePath,
+    syncStatus: syncStatus,
+    lastSyncedAt: lastSyncedAt,
+    remoteServerUpdatedAt: remoteServerUpdatedAt,
+  );
+}

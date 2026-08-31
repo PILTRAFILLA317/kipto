@@ -14,6 +14,17 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.example.kipto</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleName</key>
 	<string>kipto</string>
 	<key>CFBundlePackageType</key>
@@ -28,6 +39,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Kipto needs access to your screenshots so it can organize them and turn them into useful saved items.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Kipto uses Calendar access on iOS 15 and 16 only to present the system event editor you requested.</string>
 	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

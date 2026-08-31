@@ -11,6 +11,9 @@ final class SupabaseAuthRepository implements AuthRepository {
   final AuthGateway _auth;
   bool _waitedForInitialRecovery = false;
   Future<KiptoSession?>? _ensureInFlight;
+  static const redirectUrl = 'com.example.kipto://auth/callback';
+  static const _protectRedirectUrl = '$redirectUrl?flow=protect';
+  static const _restoreRedirectUrl = '$redirectUrl?flow=restore';
 
   @override
   KiptoUser? get currentUser => _auth.currentUser;
@@ -27,16 +30,32 @@ final class SupabaseAuthRepository implements AuthRepository {
     yield* _auth.onAuthStateChange.map(
       (change) => _stateFor(
         change.session,
-        fallbackSignedOut: change.event == AuthGatewayEvent.signedOut,
+        fallbackSignedOut:
+            change.event == AuthGatewayEvent.signedOut ||
+            change.event == AuthGatewayEvent.initial,
       ),
     );
   }
+
+  @override
+  Future<KiptoSession?> recoverSession() => _ensureInFlight ??=
+      _recoverSession().whenComplete(() => _ensureInFlight = null);
 
   @override
   Future<KiptoSession?> ensureSession() => _ensureInFlight ??= _ensureSession()
       .whenComplete(() => _ensureInFlight = null);
 
   Future<KiptoSession?> _ensureSession() async {
+    final recovered = await _recoverSession();
+    if (recovered != null) return recovered;
+    final created = await _auth.signInAnonymously();
+    if (created == null) {
+      throw StateError('Anonymous sign-in returned no session');
+    }
+    return created;
+  }
+
+  Future<KiptoSession?> _recoverSession() async {
     if (!_waitedForInitialRecovery) {
       _waitedForInitialRecovery = true;
       if (_auth.currentSession == null) {
@@ -66,11 +85,92 @@ final class SupabaseAuthRepository implements AuthRepository {
     if (_auth.currentUser != null) {
       throw StateError('Recovered identity has no usable session');
     }
-    final created = await _auth.signInAnonymously();
-    if (created == null) {
-      throw StateError('Anonymous sign-in returned no session');
+    return null;
+  }
+
+  @override
+  Future<void> protectWithApple() => _protect(KiptoIdentityProvider.apple);
+
+  @override
+  Future<void> protectWithGoogle() => _protect(KiptoIdentityProvider.google);
+
+  Future<void> _protect(KiptoIdentityProvider provider) async {
+    final before = currentUser;
+    if (before == null) {
+      throw const KiptoAuthFlowException(
+        'signed_out',
+        'Sign in before connecting another identity.',
+      );
     }
-    return created;
+    _log('auth.identity.link.started', provider);
+    try {
+      final launched = await _auth.linkIdentity(provider, _protectRedirectUrl);
+      if (!launched) {
+        throw const KiptoAuthFlowException(
+          'launch_failed',
+          'Could not open the sign-in page.',
+        );
+      }
+      final after = currentUser;
+      if (after != null && after.id != before.id) {
+        throw StateError('Identity linking changed the Supabase user UUID');
+      }
+      _log('auth.identity.link.completed', provider);
+    } on KiptoAuthFlowException {
+      rethrow;
+    } on AuthException catch (error) {
+      final alreadyLinked =
+          error.code == 'identity_already_exists' ||
+          error.message.toLowerCase().contains('already');
+      throw KiptoAuthFlowException(
+        alreadyLinked ? 'identity_already_exists' : 'provider_failed',
+        alreadyLinked
+            ? 'This account already has a Kipto library.'
+            : 'Could not protect this library. Please try again.',
+      );
+    }
+  }
+
+  @override
+  Future<void> signInExistingWithApple() =>
+      _signInExisting(KiptoIdentityProvider.apple);
+
+  @override
+  Future<void> signInExistingWithGoogle() =>
+      _signInExisting(KiptoIdentityProvider.google);
+
+  Future<void> _signInExisting(KiptoIdentityProvider provider) async {
+    if (currentUser != null) {
+      throw const KiptoAuthFlowException(
+        'session_exists',
+        'Sign out before restoring a different library.',
+      );
+    }
+    _log('auth.restore.started', provider);
+    final launched = await _auth.signInWithOAuth(provider, _restoreRedirectUrl);
+    if (!launched) {
+      throw const KiptoAuthFlowException(
+        'launch_failed',
+        'Could not open the sign-in page.',
+      );
+    }
+  }
+
+  @override
+  Future<void> signOut() async {
+    await _auth.signOut();
+    _log('auth.signout', null);
+  }
+
+  void _log(String event, KiptoIdentityProvider? provider) {
+    assert(() {
+      // Deliberately logs only a controlled provider name, never tokens/URLs.
+      // ignore: avoid_print
+      print(
+        '$event ${provider == null ? '{}' : '{provider: ${provider.name}}'}',
+      );
+      return true;
+    }());
   }
 
   KiptoAuthState _stateFor(
@@ -112,6 +212,12 @@ abstract interface class AuthGateway {
   Stream<AuthGatewayState> get onAuthStateChange;
   Future<KiptoSession?> refreshSession();
   Future<KiptoSession?> signInAnonymously();
+  Future<bool> linkIdentity(KiptoIdentityProvider provider, String redirectUrl);
+  Future<bool> signInWithOAuth(
+    KiptoIdentityProvider provider,
+    String redirectUrl,
+  );
+  Future<void> signOut();
 }
 
 final class GoTrueAuthGateway implements AuthGateway {
@@ -140,16 +246,48 @@ final class GoTrueAuthGateway implements AuthGateway {
   Future<KiptoSession?> signInAnonymously() async =>
       _mapSession((await _auth.signInAnonymously()).session);
 
+  @override
+  Future<bool> linkIdentity(
+    KiptoIdentityProvider provider,
+    String redirectUrl,
+  ) => _auth.linkIdentity(_oauthProvider(provider), redirectTo: redirectUrl);
+
+  @override
+  Future<bool> signInWithOAuth(
+    KiptoIdentityProvider provider,
+    String redirectUrl,
+  ) => _auth.signInWithOAuth(_oauthProvider(provider), redirectTo: redirectUrl);
+
+  @override
+  Future<void> signOut() => _auth.signOut();
+
+  static OAuthProvider _oauthProvider(KiptoIdentityProvider provider) =>
+      switch (provider) {
+        KiptoIdentityProvider.apple => OAuthProvider.apple,
+        KiptoIdentityProvider.google => OAuthProvider.google,
+      };
+
   static KiptoUser? _mapUser(User? user) => user == null
       ? null
-      : KiptoUser(id: user.id, isAnonymous: user.isAnonymous);
+      : KiptoUser(
+          id: user.id,
+          isAnonymous: user.isAnonymous,
+          identityProviders: List.unmodifiable(
+            (user.identities ?? const <UserIdentity>[])
+                .map(
+                  (identity) => switch (identity.provider) {
+                    'apple' => KiptoIdentityProvider.apple,
+                    'google' => KiptoIdentityProvider.google,
+                    _ => null,
+                  },
+                )
+                .whereType<KiptoIdentityProvider>(),
+          ),
+        );
   static KiptoSession? _mapSession(Session? session) => session == null
       ? null
       : KiptoSession(
-          user: KiptoUser(
-            id: session.user.id,
-            isAnonymous: session.user.isAnonymous,
-          ),
+          user: _mapUser(session.user)!,
           isExpired: session.isExpired,
         );
 }

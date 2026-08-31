@@ -14,6 +14,7 @@ class LocalAssetThumbnail extends ConsumerWidget {
     this.fit = BoxFit.cover,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
     this.missingMessage,
+    this.fallback,
   });
 
   final String localAssetId;
@@ -25,10 +26,12 @@ class LocalAssetThumbnail extends ConsumerWidget {
   final BoxFit fit;
   final BorderRadius borderRadius;
   final String? missingMessage;
+  final Widget? fallback;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!originalAvailable) {
+      if (fallback != null) return fallback!;
       return _ThumbnailFallback(
         width: width,
         height: height,
@@ -51,19 +54,22 @@ class LocalAssetThumbnail extends ConsumerWidget {
         height: height,
         borderRadius: borderRadius,
       ),
-      error: (_, _) => _ThumbnailFallback(
-        width: width,
-        height: height,
-        borderRadius: borderRadius,
-        message: missingMessage,
-      ),
+      error: (_, _) =>
+          fallback ??
+          _ThumbnailFallback(
+            width: width,
+            height: height,
+            borderRadius: borderRadius,
+            message: missingMessage,
+          ),
       data: (data) => data == null
-          ? _ThumbnailFallback(
-              width: width,
-              height: height,
-              borderRadius: borderRadius,
-              message: missingMessage,
-            )
+          ? fallback ??
+                _ThumbnailFallback(
+                  width: width,
+                  height: height,
+                  borderRadius: borderRadius,
+                  message: missingMessage,
+                )
           : ClipRRect(
               borderRadius: borderRadius,
               child: Image.memory(
@@ -72,12 +78,14 @@ class LocalAssetThumbnail extends ConsumerWidget {
                 height: height,
                 fit: fit,
                 gaplessPlayback: true,
-                errorBuilder: (_, _, _) => _ThumbnailFallback(
-                  width: width,
-                  height: height,
-                  borderRadius: borderRadius,
-                  message: missingMessage,
-                ),
+                errorBuilder: (_, _, _) =>
+                    fallback ??
+                    _ThumbnailFallback(
+                      width: width,
+                      height: height,
+                      borderRadius: borderRadius,
+                      message: missingMessage,
+                    ),
               ),
             ),
     );

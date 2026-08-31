@@ -73,6 +73,13 @@ final class ApplyScreenshotAnalysis {
     };
     final note = existing.entities[SavedItem.userNoteEntityKey];
     if (note is String) entities[SavedItem.userNoteEntityKey] = note;
+    final completedActions =
+        existing.entities[SavedItem.completedActionsEntityKey];
+    if (completedActions is Map) {
+      entities[SavedItem.completedActionsEntityKey] = Map<String, Object?>.from(
+        completedActions,
+      );
+    }
     final pixelWidth = existing.entities['pixelWidth'];
     if (pixelWidth != null) entities['pixelWidth'] = pixelWidth;
     final pixelHeight = existing.entities['pixelHeight'];

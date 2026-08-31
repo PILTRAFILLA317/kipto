@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:kipto/core/database/app_database.dart';
@@ -17,14 +19,17 @@ final class DriftRemindersRepository implements RemindersRepository {
     Clock? clock,
     IdGenerator? idGenerator,
     LocalSyncCoordinator? syncCoordinator,
+    Future<void> Function()? onChanged,
   }) : _clock = clock ?? const Clock(),
        _idGenerator = idGenerator ?? const Uuid().v4,
-       _syncCoordinator = syncCoordinator;
+       _syncCoordinator = syncCoordinator,
+       _onChanged = onChanged;
 
   final AppDatabase _database;
   final Clock _clock;
   final IdGenerator _idGenerator;
   final LocalSyncCoordinator? _syncCoordinator;
+  final Future<void> Function()? _onChanged;
 
   DateTime get _now => _clock.now().toUtc();
 
@@ -66,6 +71,7 @@ final class DriftRemindersRepository implements RemindersRepository {
       }
     });
     if (shouldSync) _syncCoordinator!.notifyAfterCommit();
+    _notifyChanged();
     return reminder;
   }
 
@@ -78,6 +84,21 @@ final class DriftRemindersRepository implements RemindersRepository {
       RemindersCompanion(completedAt: Value(now), updatedAt: Value(now)),
       SyncOperation.update,
     );
+    _notifyChanged();
+  }
+
+  @override
+  Future<void> edit(String id, DateTime remindAt) async {
+    final existing = await _require(id);
+    await _writeSynchronized(
+      existing,
+      RemindersCompanion(
+        remindAt: Value(remindAt.toUtc()),
+        updatedAt: Value(_now),
+      ),
+      SyncOperation.update,
+    );
+    _notifyChanged();
   }
 
   @override
@@ -89,6 +110,7 @@ final class DriftRemindersRepository implements RemindersRepository {
       RemindersCompanion(deletedAt: Value(now), updatedAt: Value(now)),
       SyncOperation.delete,
     );
+    _notifyChanged();
   }
 
   @override
@@ -131,6 +153,19 @@ final class DriftRemindersRepository implements RemindersRepository {
       }
     });
     if (shouldSync) coordinator!.notifyAfterCommit();
+  }
+
+  void _notifyChanged() {
+    final callback = _onChanged;
+    if (callback != null) unawaited(_runDeviceCallback(callback));
+  }
+
+  Future<void> _runDeviceCallback(Future<void> Function() callback) async {
+    try {
+      await callback();
+    } on Object {
+      // A device projection failure must not fail a committed reminder write.
+    }
   }
 
   Reminder _fromRow(ReminderRow row) => Reminder(

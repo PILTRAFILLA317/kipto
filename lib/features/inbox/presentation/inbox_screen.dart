@@ -17,6 +17,8 @@ import 'package:kipto/features/photo_library/presentation/widgets/screenshot_imp
 import 'package:kipto/features/analysis/domain/analysis_queue_models.dart';
 import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
 import 'package:kipto/features/analysis/presentation/widgets/analysis_queue_controls.dart';
+import 'package:kipto/core/presentation/saved_item_display.dart';
+import 'package:kipto/features/actions/presentation/saved_item_action_flow.dart';
 
 class InboxScreen extends ConsumerWidget {
   const InboxScreen({super.key});
@@ -199,24 +201,25 @@ class _InboxSections extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
-                ...section.items.map(
-                  (item) => Padding(
+                ...section.items.map((item) {
+                  final action = const SavedItemActionPresentationPolicy()
+                      .primaryFor(item);
+                  return Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: SavedItemCard(
                       item: item,
                       now: now,
-                      onPrimaryAction: item.availableActions.isEmpty
+                      onPrimaryAction: action == null
                           ? null
-                          : () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'This action will be available soon',
-                                ),
-                              ),
+                          : () => runSavedItemActionFlow(
+                              context: context,
+                              ref: ref,
+                              item: item,
+                              action: action,
                             ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
           );

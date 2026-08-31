@@ -15,6 +15,10 @@ import 'package:kipto/core/providers/time_provider.dart';
 import 'package:kipto/core/utils/date_formatters.dart';
 import 'package:kipto/features/saved_item/presentation/providers/saved_item_providers.dart';
 import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
+import 'package:kipto/features/actions/application/reminder_action_service.dart';
+import 'package:kipto/features/actions/domain/action_execution_result.dart';
+import 'package:kipto/features/actions/presentation/action_providers.dart';
+import 'package:kipto/features/actions/presentation/saved_item_action_flow.dart';
 
 class SavedItemDetailScreen extends ConsumerStatefulWidget {
   const SavedItemDetailScreen({super.key, required this.itemId});
@@ -123,12 +127,13 @@ class _SavedItemDetailScreenState extends ConsumerState<SavedItemDetailScreen> {
                 ),
               ),
             if (item.availableActions.isNotEmpty)
-              _PrimaryAction(
-                action: item.availableActions.first,
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('This action will be available soon'),
-                  ),
+              _ActionsSection(
+                item: item,
+                onAction: (action) => runSavedItemActionFlow(
+                  context: context,
+                  ref: ref,
+                  item: item,
+                  action: action,
                 ),
               ),
             if (item.intent?.isNotEmpty ?? false)
@@ -148,7 +153,7 @@ class _SavedItemDetailScreenState extends ConsumerState<SavedItemDetailScreen> {
             _NotesSection(item: item, onEdit: () => _editNote(item)),
             if (item.detectedEntities.isNotEmpty)
               _DetectedInformation(entities: item.detectedEntities),
-            _RemindersSection(itemId: item.id, run: _run),
+            _RemindersSection(item: item),
             _StatusActions(
               item: item,
               onRestore: () => _run(
@@ -621,21 +626,67 @@ class _AnalysisPanel extends StatelessWidget {
   }
 }
 
-class _PrimaryAction extends StatelessWidget {
-  const _PrimaryAction({required this.action, required this.onPressed});
+class _ActionsSection extends StatelessWidget {
+  const _ActionsSection({required this.item, required this.onAction});
 
-  final SavedItemActionType action;
-  final VoidCallback onPressed;
+  final SavedItem item;
+  final ValueChanged<SavedItemActionType> onAction;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-    child: FilledButton.icon(
-      onPressed: onPressed,
-      icon: Icon(action.icon),
-      label: Text(action.label),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final actions = const SavedItemActionPresentationPolicy().orderedFor(item);
+    if (actions.isEmpty) return const SizedBox.shrink();
+    final primary = actions.first;
+    return _DetailSection(
+      title: 'Actions',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: Semantics(
+              button: true,
+              label: primary.description,
+              child: FilledButton.icon(
+                onPressed: () => onAction(primary),
+                icon: Icon(
+                  item.hasCompletedAction(primary)
+                      ? Icons.check_circle_outline
+                      : primary.icon,
+                ),
+                label: Text(
+                  item.hasCompletedAction(primary)
+                      ? primary.completedLabel
+                      : primary.label,
+                ),
+              ),
+            ),
+          ),
+          if (actions.length > 1)
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                for (final action in actions.skip(1))
+                  TextButton.icon(
+                    onPressed: () => onAction(action),
+                    icon: Icon(
+                      item.hasCompletedAction(action)
+                          ? Icons.check_circle_outline
+                          : action.icon,
+                    ),
+                    label: Text(
+                      item.hasCompletedAction(action)
+                          ? action.completedLabel
+                          : action.label,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DatesSection extends StatelessWidget {
@@ -788,19 +839,14 @@ class _StatusActions extends StatelessWidget {
 }
 
 class _RemindersSection extends ConsumerWidget {
-  const _RemindersSection({required this.itemId, required this.run});
+  const _RemindersSection({required this.item});
 
-  final String itemId;
-  final Future<void> Function(
-    Future<void> Function() operation, {
-    String? success,
-  })
-  run;
+  final SavedItem item;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reminders = ref.watch(itemRemindersProvider(itemId));
-    final repository = ref.read(remindersRepositoryProvider);
+    final reminders = ref.watch(itemRemindersProvider(item.id));
+    final service = ref.read(reminderActionServiceProvider);
     return _DetailSection(
       title: 'Reminders',
       child: Column(
@@ -818,15 +864,14 @@ class _RemindersSection extends ConsumerWidget {
                             reminder: reminder,
                             now: ref.watch(currentTimeProvider),
                             onComplete: reminder.completedAt == null
-                                ? () => run(
-                                    () => repository.complete(reminder.id),
-                                    success: 'Reminder completed',
-                                  )
+                                ? () =>
+                                      _run(context, service.complete(reminder))
                                 : null,
-                            onDelete: () => run(
-                              () => repository.delete(reminder.id),
-                              success: 'Reminder deleted',
-                            ),
+                            onEdit: reminder.completedAt == null
+                                ? () => _edit(context, reminder, service)
+                                : null,
+                            onDelete: () =>
+                                _run(context, service.delete(reminder)),
                           ),
                         )
                         .toList(),
@@ -834,7 +879,12 @@ class _RemindersSection extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           FilledButton.tonalIcon(
-            onPressed: () => _addReminder(context, ref),
+            onPressed: () => runSavedItemActionFlow(
+              context: context,
+              ref: ref,
+              item: item,
+              action: SavedItemActionType.createReminder,
+            ),
             icon: const Icon(Icons.add_alert_outlined),
             label: const Text('Add reminder'),
           ),
@@ -843,77 +893,42 @@ class _RemindersSection extends ConsumerWidget {
     );
   }
 
-  Future<void> _addReminder(BuildContext context, WidgetRef ref) async {
-    final preset = await showModalBottomSheet<DatePreset>(
+  Future<void> _edit(
+    BuildContext context,
+    Reminder reminder,
+    ReminderActionService service,
+  ) async {
+    final current = reminder.remindAt.toLocal();
+    final chosen = await showDatePicker(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Text(
-                'Add reminder',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            _PresetTile(
-              icon: Icons.schedule,
-              label: 'Later today',
-              onTap: () => context.pop(DatePreset.laterToday),
-            ),
-            _PresetTile(
-              icon: Icons.today_outlined,
-              label: 'Tomorrow',
-              onTap: () => context.pop(DatePreset.tomorrow),
-            ),
-            _PresetTile(
-              icon: Icons.date_range_outlined,
-              label: 'Next week',
-              onTap: () => context.pop(DatePreset.nextWeek),
-            ),
-            _PresetTile(
-              icon: Icons.edit_calendar_outlined,
-              label: 'Choose date and time',
-              onTap: () => context.pop(DatePreset.custom),
-            ),
-          ],
-        ),
-      ),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      initialDate: current.isAfter(DateTime.now()) ? current : DateTime.now(),
     );
-    if (preset == null || !context.mounted) return;
-    DateTime? date;
-    if (preset == DatePreset.custom) {
-      final now = ref.read(currentTimeProvider).toLocal();
-      final chosen = await showDatePicker(
-        context: context,
-        firstDate: DateTime(now.year, now.month, now.day),
-        lastDate: DateTime(now.year + 5),
-        initialDate: now.add(const Duration(days: 1)),
-      );
-      if (chosen == null || !context.mounted) return;
-      final time = await showTimePicker(
-        context: context,
-        initialTime: const TimeOfDay(hour: 9, minute: 0),
-      );
-      if (time == null) return;
-      date = DateTime(
-        chosen.year,
-        chosen.month,
-        chosen.day,
-        time.hour,
-        time.minute,
-      ).toUtc();
-    } else {
-      date = DatePresetPolicy.resolve(preset, ref.read(currentTimeProvider));
-    }
-    await run(() async {
-      await ref
-          .read(remindersRepositoryProvider)
-          .create(savedItemId: itemId, remindAt: date!);
-    }, success: 'Reminder added');
+    if (chosen == null || !context.mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+    );
+    if (time == null || !context.mounted) return;
+    final next = DateTime(
+      chosen.year,
+      chosen.month,
+      chosen.day,
+      time.hour,
+      time.minute,
+    );
+    await _run(context, service.edit(reminder, next));
+  }
+
+  Future<void> _run(
+    BuildContext context,
+    Future<ActionExecutionResult> operation,
+  ) async {
+    final result = await operation;
+    if (!context.mounted || result.message == null) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(result.message!)));
   }
 }
 
@@ -922,12 +937,14 @@ class _ReminderTile extends StatelessWidget {
     required this.reminder,
     required this.now,
     required this.onComplete,
+    required this.onEdit,
     required this.onDelete,
   });
 
   final Reminder reminder;
   final DateTime now;
   final VoidCallback? onComplete;
+  final VoidCallback? onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -943,6 +960,12 @@ class _ReminderTile extends StatelessWidget {
     trailing: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (onEdit != null)
+          IconButton(
+            tooltip: 'Edit reminder',
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_calendar_outlined),
+          ),
         if (onComplete != null)
           IconButton(
             tooltip: 'Complete reminder',

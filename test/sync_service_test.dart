@@ -12,6 +12,12 @@ import 'package:kipto/core/sync/remote_models.dart';
 import 'package:kipto/core/sync/sync_service.dart';
 import 'package:kipto/core/sync/sync_status.dart';
 import 'package:kipto/dev/seed/development_seed.dart';
+import 'package:kipto/features/notifications/application/device_time_zone_service.dart';
+import 'package:kipto/features/notifications/application/notification_gateway.dart';
+import 'package:kipto/features/notifications/application/reminder_notification_scheduler.dart';
+import 'package:kipto/features/notifications/data/notification_mapping_store.dart';
+import 'package:kipto/features/notifications/domain/notification_models.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import 'fakes/fake_sync_dependencies.dart';
 import 'test_helpers.dart';
@@ -105,6 +111,7 @@ void main() {
         id: 'cloud-only',
         clientUpdatedAt: now,
         serverUpdatedAt: now.add(const Duration(minutes: 3)),
+        cloudPreviewPath: 'user-a/cloud-only/preview-v1.jpg',
       );
       final service = SyncService(
         database: database,
@@ -123,6 +130,7 @@ void main() {
       final cloudOnly = await database.savedItemsDao.findById('cloud-only');
       expect(cloudOnly?.localAssetId, isNull);
       expect(cloudOnly?.originalAvailable, isFalse);
+      expect(cloudOnly?.cloudPreviewPath, 'user-a/cloud-only/preview-v1.jpg');
     },
   );
 
@@ -320,6 +328,124 @@ void main() {
       isNotNull,
     );
   });
+
+  test(
+    'save favorites one item and reaches cloud through the sync queue',
+    () async {
+      final harness = await _Harness.create(identity: identity);
+      addTearDown(harness.dispose);
+      await harness.savedRepository.create(
+        testSavedItem(id: 'saved', now: now),
+      );
+      await harness.service.syncNow();
+
+      await harness.savedRepository.save('saved');
+
+      expect(await harness.database.syncQueueDao.pending(), hasLength(1));
+      expect(await harness.database.savedItemsDao.getActive(), hasLength(1));
+      await harness.service.syncNow();
+      final remote = harness.remote.savedItems['saved'];
+      expect(remote?.favorite, isTrue);
+      expect(
+        remote?.entities[SavedItem.completedActionsEntityKey],
+        contains(SavedItemActionType.save.storageValue),
+      );
+    },
+  );
+
+  test(
+    'remote reminder pull schedules its device-local notification',
+    () async {
+      final database = createTestDatabase();
+      addTearDown(database.close);
+      final remote = FakeRemoteDataSource();
+      remote.savedItems['parent'] = _remoteItem(
+        id: 'parent',
+        clientUpdatedAt: now,
+        serverUpdatedAt: now,
+      );
+      remote.reminders['remote-reminder'] = RemoteReminder(
+        id: 'remote-reminder',
+        userId: identity.id,
+        savedItemId: 'parent',
+        remindAt: now.add(const Duration(days: 1)),
+        kind: ReminderKind.followUp,
+        clientUpdatedAt: now,
+        serverUpdatedAt: now.add(const Duration(seconds: 1)),
+        createdAt: now,
+      );
+      final notificationGateway = _SyncNotificationGateway();
+      final mappingStore = NotificationMappingStore(database);
+      final notificationScheduler = ReminderNotificationScheduler(
+        gateway: notificationGateway,
+        mappings: mappingStore,
+        timeZones: _UtcTimeZoneService(),
+        clock: Clock.fixed(now),
+      );
+      final service = SyncService(
+        database: database,
+        auth: FakeAuthRepository(identity),
+        remote: remote,
+        onRemindersChanged: notificationScheduler.reconcile,
+      );
+      addTearDown(service.dispose);
+
+      await service.initialize();
+
+      expect(
+        await database.remindersDao.findById('remote-reminder'),
+        isNotNull,
+      );
+      expect(notificationGateway.scheduledReminderIds, ['remote-reminder']);
+      expect(await mappingStore.count(), 1);
+    },
+  );
+}
+
+final class _SyncNotificationGateway implements ReminderNotificationGateway {
+  final List<String> scheduledReminderIds = [];
+
+  @override
+  Future<String?> initialize(NotificationPayloadCallback onPayload) async =>
+      null;
+
+  @override
+  Future<NotificationPermissionStatus> permissionStatus() async =>
+      NotificationPermissionStatus.granted;
+
+  @override
+  Future<NotificationPermissionStatus> requestPermission() async =>
+      NotificationPermissionStatus.granted;
+
+  @override
+  Future<void> openSettings() async {}
+
+  @override
+  Future<void> schedule({
+    required int id,
+    required tz.TZDateTime at,
+    required String title,
+    required String body,
+    required String payload,
+  }) async {
+    scheduledReminderIds.add(
+      ReminderNotificationPayload.tryParse(payload)!.reminderId,
+    );
+  }
+
+  @override
+  Future<void> cancel(int id) async {}
+
+  @override
+  Future<void> showTest() async {}
+}
+
+final class _UtcTimeZoneService implements DeviceTimeZoneService {
+  @override
+  Future<String> currentIdentifier() async => 'UTC';
+
+  @override
+  tz.Location locationFor(String identifier) => tz.UTC;
 }
 
 final class _Harness {
@@ -409,6 +535,7 @@ RemoteSavedItem _remoteItem({
   required DateTime clientUpdatedAt,
   required DateTime serverUpdatedAt,
   String title = 'Cloud item',
+  String? cloudPreviewPath,
 }) => RemoteSavedItem(
   id: id,
   userId: 'user-a',
@@ -420,6 +547,7 @@ RemoteSavedItem _remoteItem({
   capturedAt: clientUpdatedAt,
   entities: const {},
   availableActions: const [],
+  cloudPreviewPath: cloudPreviewPath,
   analysisStatus: AnalysisStatus.unprocessed,
   analysisVersion: 0,
   clientUpdatedAt: clientUpdatedAt,

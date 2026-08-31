@@ -9,6 +9,7 @@ abstract interface class RemindersRepository {
     ReminderKind kind,
   });
   Future<void> complete(String id);
+  Future<void> edit(String id, DateTime remindAt);
   Future<void> delete(String id);
   Future<List<Reminder>> futurePending({DateTime? from});
 }

@@ -7,6 +7,7 @@ import 'package:kipto/features/photo_library/domain/photo_library_repository.dar
 import 'package:kipto/core/providers/sync_providers.dart';
 import 'package:kipto/core/sync/sync_status.dart';
 import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
+import 'package:kipto/features/cloud_preview/presentation/cloud_preview_providers.dart';
 
 final class PhotoLibraryLifecycle extends ConsumerStatefulWidget {
   const PhotoLibraryLifecycle({super.key, required this.child});
@@ -51,6 +52,9 @@ final class _PhotoLibraryLifecycleState
       await repository.startObservingChanges();
     }
     await ref.read(syncServiceProvider).initialize();
+    await ref
+        .read(cloudPreviewBackupServiceProvider)
+        .initialize(foreground: true);
     await analysisInitialization;
     if (!mounted) return;
     await ref.read(analysisQueueRunnerProvider).onForeground();
@@ -77,6 +81,7 @@ final class _PhotoLibraryLifecycleState
       unawaited(_resume());
     } else {
       ref.read(analysisQueueRunnerProvider).onBackground();
+      ref.read(cloudPreviewBackupServiceProvider).onBackground();
       unawaited(_repository?.stopObservingChanges());
     }
   }
@@ -90,6 +95,7 @@ final class _PhotoLibraryLifecycleState
       await _repository?.stopObservingChanges();
     }
     await ref.read(syncServiceProvider).syncNow(SyncReason.resume);
+    await ref.read(cloudPreviewBackupServiceProvider).onForeground();
     await ref.read(analysisQueueRunnerProvider).onForeground();
   }
 

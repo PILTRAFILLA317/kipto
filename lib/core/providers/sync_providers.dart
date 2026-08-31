@@ -10,6 +10,7 @@ import 'package:kipto/core/sync/supabase_remote_data_source.dart';
 import 'package:kipto/core/sync/sync_service.dart';
 import 'package:kipto/core/sync/sync_status.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kipto/features/notifications/presentation/notification_providers.dart';
 
 final appConfigProvider = Provider<AppConfig>(
   (_) => AppConfig.fromEnvironment(),
@@ -38,6 +39,8 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     database: ref.watch(appDatabaseProvider),
     auth: ref.watch(authRepositoryProvider),
     remote: ref.watch(remoteDataSourceProvider),
+    onRemindersChanged: () =>
+        ref.read(reminderNotificationSchedulerProvider).reconcile(),
   );
   ref.onDispose(service.dispose);
   return service;

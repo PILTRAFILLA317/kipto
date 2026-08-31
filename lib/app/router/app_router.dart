@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kipto/app/shell/main_shell.dart';
+import 'package:kipto/features/account/presentation/auth_gate.dart';
 import 'package:kipto/features/inbox/presentation/inbox_screen.dart';
 import 'package:kipto/features/library/presentation/library_screen.dart';
 import 'package:kipto/features/saved_item/presentation/saved_item_detail_screen.dart';
@@ -13,6 +14,17 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/inbox',
   routes: [
+    GoRoute(
+      parentNavigatorKey: _rootNavigatorKey,
+      path: '/auth/callback',
+      builder: (context, state) => AuthCallbackScreen(
+        flow: state.uri.queryParameters['flow'],
+        callbackError:
+            state.uri.queryParameters['error_code'] ??
+            state.uri.queryParameters['error_description'] ??
+            state.uri.queryParameters['error'],
+      ),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),

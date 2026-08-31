@@ -21,6 +21,18 @@ final class FakeAuthRepository implements AuthRepository {
   @override
   Future<KiptoSession?> ensureSession() async => currentSession;
   @override
+  Future<KiptoSession?> recoverSession() async => currentSession;
+  @override
+  Future<void> protectWithApple() async {}
+  @override
+  Future<void> protectWithGoogle() async {}
+  @override
+  Future<void> signInExistingWithApple() async {}
+  @override
+  Future<void> signInExistingWithGoogle() async {}
+  @override
+  Future<void> signOut() async => identity = null;
+  @override
   Stream<KiptoAuthState> watchAuthState() => Stream.value(
     identity == null
         ? const KiptoAuthState(KiptoAuthStatus.signedOut)

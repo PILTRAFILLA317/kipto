@@ -29,6 +29,9 @@ class SavedItemCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final effectiveNow = now;
     final unprocessed = item.analysisStatus == AnalysisStatus.unprocessed;
+    final primaryAction = const SavedItemActionPresentationPolicy().primaryFor(
+      item,
+    );
     final subtitle = unprocessed
         ? formatRelativeDateTime(item.capturedAt, effectiveNow)
         : item.summary.isEmpty
@@ -104,12 +107,21 @@ class SavedItemCard extends StatelessWidget {
                           ),
                       ],
                     ),
-                    if (!compact && item.availableActions.isNotEmpty) ...[
+                    if (!compact && primaryAction != null) ...[
                       const SizedBox(height: AppSpacing.xs),
                       TextButton.icon(
                         onPressed: onPrimaryAction,
-                        icon: Icon(item.availableActions.first.icon, size: 18),
-                        label: Text(item.availableActions.first.label),
+                        icon: Icon(
+                          item.hasCompletedAction(primaryAction)
+                              ? Icons.check_circle_outline
+                              : primaryAction.icon,
+                          size: 18,
+                        ),
+                        label: Text(
+                          item.hasCompletedAction(primaryAction)
+                              ? primaryAction.completedLabel
+                              : primaryAction.label,
+                        ),
                       ),
                     ],
                   ],

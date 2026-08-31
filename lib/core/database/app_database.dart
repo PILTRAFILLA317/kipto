@@ -10,6 +10,7 @@ import 'package:kipto/core/database/tables/cloud_sync_state.dart';
 import 'package:kipto/core/database/tables/screenshot_import_state.dart';
 import 'package:kipto/core/database/tables/saved_items.dart';
 import 'package:kipto/core/database/tables/sync_queue.dart';
+import 'package:kipto/core/database/tables/preview_transfer_jobs.dart';
 import 'package:kipto/core/domain/enums/saved_item_enums.dart';
 
 part 'app_database.g.dart';
@@ -21,6 +22,7 @@ part 'app_database.g.dart';
     SyncQueue,
     ScreenshotImportStates,
     CloudSyncStates,
+    PreviewTransferJobs,
   ],
   daos: [SavedItemsDao, RemindersDao, SyncQueueDao, ScreenshotImportStateDao],
 )
@@ -29,7 +31,7 @@ final class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'kipto'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   DriftDatabaseOptions get options =>
@@ -40,6 +42,7 @@ final class AppDatabase extends _$AppDatabase {
     onCreate: (migrator) async {
       await migrator.createAll();
       await _createAnalysisQueue();
+      await _createNotificationMappings();
     },
     onUpgrade: (migrator, from, to) async {
       if (from >= to) return;
@@ -71,6 +74,12 @@ final class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await _createAnalysisQueue();
       }
+      if (from < 5) {
+        await _createNotificationMappings();
+      }
+      if (from < 6 && !await _tableExists('preview_transfer_jobs')) {
+        await migrator.createTable(previewTransferJobs);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -96,6 +105,22 @@ final class AppDatabase extends _$AppDatabase {
     await customStatement('''
       CREATE INDEX IF NOT EXISTS analysis_queue_due_idx
       ON analysis_queue (state, next_attempt_at, priority, enqueued_at)
+    ''');
+  }
+
+  Future<void> _createNotificationMappings() async {
+    await customStatement('''
+      CREATE TABLE IF NOT EXISTS notification_mappings (
+        reminder_id TEXT NOT NULL PRIMARY KEY
+          REFERENCES reminders(id) ON DELETE CASCADE,
+        notification_id INTEGER NOT NULL UNIQUE,
+        scheduled_for TEXT NOT NULL,
+        timezone TEXT NOT NULL
+      )
+    ''');
+    await customStatement('''
+      CREATE UNIQUE INDEX IF NOT EXISTS notification_mappings_id_idx
+      ON notification_mappings (notification_id)
     ''');
   }
 

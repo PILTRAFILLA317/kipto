@@ -24,6 +24,7 @@ final class SyncService {
     Uuid? uuid,
     this.pushBatchSize = 100,
     this.pullPageSize = 500,
+    this.onRemindersChanged,
   }) : _database = database,
        _auth = auth,
        _remote = remote,
@@ -37,6 +38,7 @@ final class SyncService {
   final Uuid _uuid;
   final int pushBatchSize;
   final int pullPageSize;
+  final Future<void> Function()? onRemindersChanged;
   final StreamController<SyncStatusSnapshot> _statusController =
       StreamController.broadcast();
 
@@ -62,7 +64,7 @@ final class SyncService {
     if (_initialized || _remote == null) return;
     _initialized = true;
     try {
-      final session = await _auth.ensureSession();
+      final session = await _auth.recoverSession();
       if (session == null) return;
       await _bindUser(session.user.id);
       _authEvents = _auth.watchAuthState().listen((state) {
@@ -117,7 +119,7 @@ final class SyncService {
 
   Future<void> _runOnce(SyncReason reason) async {
     final started = _clock.now().toUtc();
-    final session = await _auth.ensureSession();
+    final session = await _auth.recoverSession();
     final userId = session?.user.id;
     if (userId == null) return;
     if (_boundUserId == null) await _bindUser(userId);
@@ -162,6 +164,11 @@ final class SyncService {
       await _push(userId, state.installationId);
       await _pullSavedItems(userId);
       await _pullReminders(userId);
+      try {
+        await onRemindersChanged?.call();
+      } on Object {
+        // Notifications are a device-local projection and never fail sync.
+      }
       final completed = _clock.now().toUtc();
       await (_database.update(
         _database.cloudSyncStates,
@@ -352,7 +359,7 @@ final class SyncService {
           await _database.savedItemsDao.updateFields(
             entry.$1.id,
             remote.clientUpdatedAt.isAfter(entry.$1.updatedAt)
-                ? remoteSavedItemUpdate(remote)
+                ? remoteSavedItemUpdate(remote, localEntities: current.entities)
                 : SavedItemsCompanion(
                     syncStatus: const Value(SyncStatus.synced),
                     lastSyncedAt: Value(remote.serverUpdatedAt),
@@ -472,7 +479,7 @@ final class SyncService {
           } else if (_remoteWins(local.syncStatus, local.updatedAt, remote)) {
             await _database.savedItemsDao.updateFields(
               remote.id,
-              remoteSavedItemUpdate(remote),
+              remoteSavedItemUpdate(remote, localEntities: local.entities),
             );
             await _removeEntityQueue(SyncEntityType.savedItem, remote.id);
           }
@@ -606,11 +613,20 @@ final class SyncService {
   }
 
   Future<void> dispose() async {
+    await stopForAccountChange();
+    await _statusController.close();
+  }
+
+  Future<void> stopForAccountChange() async {
     _localDebounce?.cancel();
     _realtimeDebounce?.cancel();
     await _authEvents?.cancel();
     await _realtimeEvents?.cancel();
     await _realtime?.dispose();
-    await _statusController.close();
+    _authEvents = null;
+    _realtimeEvents = null;
+    _realtime = null;
+    _boundUserId = null;
+    _initialized = false;
   }
 }

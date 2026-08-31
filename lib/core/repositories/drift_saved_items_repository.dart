@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:kipto/core/database/app_database.dart';
@@ -15,12 +17,21 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
     this._database, {
     Clock? clock,
     LocalSyncCoordinator? syncCoordinator,
+    Future<void> Function()? onSavedItemDeleted,
+    Future<void> Function(String savedItemId)? onSavedItemCreated,
+    Future<void> Function(String savedItemId)? onPreviewDeleteRequested,
   }) : _clock = clock ?? const Clock(),
-       _syncCoordinator = syncCoordinator;
+       _syncCoordinator = syncCoordinator,
+       _onSavedItemDeleted = onSavedItemDeleted,
+       _onSavedItemCreated = onSavedItemCreated,
+       _onPreviewDeleteRequested = onPreviewDeleteRequested;
 
   final AppDatabase _database;
   final Clock _clock;
   final LocalSyncCoordinator? _syncCoordinator;
+  final Future<void> Function()? _onSavedItemDeleted;
+  final Future<void> Function(String savedItemId)? _onSavedItemCreated;
+  final Future<void> Function(String savedItemId)? _onPreviewDeleteRequested;
 
   DateTime get _now => _clock.now().toUtc();
 
@@ -128,6 +139,10 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
       }
     });
     if (shouldSync) coordinator.notifyAfterCommit();
+    final previewCallback = _onSavedItemCreated;
+    if (previewCallback != null) {
+      unawaited(_runItemCallback(previewCallback, item.id));
+    }
   }
 
   @override
@@ -215,6 +230,47 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   }
 
   @override
+  Future<void> save(String id) async {
+    final current = await _require(id);
+    await _writeSynchronized(
+      current,
+      SavedItemsCompanion(
+        favorite: const Value(true),
+        entities: Value(
+          _withCompletedAction(
+            current.entities,
+            SavedItemActionType.save,
+            _now,
+          ),
+        ),
+        updatedAt: Value(_now),
+      ),
+      SyncOperation.update,
+    );
+  }
+
+  @override
+  Future<void> markActionCompleted(
+    String id,
+    SavedItemActionType action,
+  ) async {
+    if (action != SavedItemActionType.addCalendar &&
+        action != SavedItemActionType.createReminder &&
+        action != SavedItemActionType.save) {
+      throw ArgumentError.value(action, 'action', 'Action is not persistent');
+    }
+    final current = await _require(id);
+    await _writeSynchronized(
+      current,
+      SavedItemsCompanion(
+        entities: Value(_withCompletedAction(current.entities, action, _now)),
+        updatedAt: Value(_now),
+      ),
+      SyncOperation.update,
+    );
+  }
+
+  @override
   Future<void> snooze(String id, DateTime until) => _writeSynchronizedFields(
     id,
     SavedItemsCompanion(
@@ -237,11 +293,38 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
   );
 
   @override
-  Future<void> softDelete(String id) => _writeSynchronizedFields(
-    id,
-    SavedItemsCompanion(deletedAt: Value(_now), updatedAt: Value(_now)),
-    operation: SyncOperation.delete,
-  );
+  Future<void> softDelete(String id) async {
+    await _writeSynchronizedFields(
+      id,
+      SavedItemsCompanion(deletedAt: Value(_now), updatedAt: Value(_now)),
+      operation: SyncOperation.delete,
+    );
+    final callback = _onSavedItemDeleted;
+    if (callback != null) unawaited(_runDeviceCallback(callback));
+    final previewCallback = _onPreviewDeleteRequested;
+    if (previewCallback != null) {
+      unawaited(_runItemCallback(previewCallback, id));
+    }
+  }
+
+  Future<void> _runItemCallback(
+    Future<void> Function(String savedItemId) callback,
+    String id,
+  ) async {
+    try {
+      await callback(id);
+    } on Object {
+      // File transfer failures remain isolated from committed domain writes.
+    }
+  }
+
+  Future<void> _runDeviceCallback(Future<void> Function() callback) async {
+    try {
+      await callback();
+    } on Object {
+      // A device projection failure must not fail a committed SavedItem write.
+    }
+  }
 
   Future<void> _writeSynchronizedFields(
     String id,
@@ -321,6 +404,21 @@ final class DriftSavedItemsRepository implements SavedItemsRepository {
       metadata['categorySource'] = SavedItemMetadataSource.user.storageValue;
     }
     updated[SavedItem.analysisMetadataEntityKey] = metadata;
+    return updated;
+  }
+
+  Map<String, Object?> _withCompletedAction(
+    Map<String, Object?> entities,
+    SavedItemActionType action,
+    DateTime completedAt,
+  ) {
+    final updated = Map<String, Object?>.from(entities);
+    final raw = updated[SavedItem.completedActionsEntityKey];
+    final completed = raw is Map
+        ? Map<String, Object?>.from(raw)
+        : <String, Object?>{};
+    completed[action.storageValue] = completedAt.toUtc().toIso8601String();
+    updated[SavedItem.completedActionsEntityKey] = completed;
     return updated;
   }
 

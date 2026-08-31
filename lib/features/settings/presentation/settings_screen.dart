@@ -14,6 +14,12 @@ import 'package:kipto/features/analysis/domain/analysis_constants.dart';
 import 'package:kipto/features/analysis/domain/analysis_queue_models.dart';
 import 'package:kipto/features/analysis/presentation/providers/analysis_providers.dart';
 import 'package:kipto/features/analysis/presentation/widgets/analysis_queue_controls.dart';
+import 'package:kipto/features/notifications/domain/notification_models.dart';
+import 'package:kipto/features/notifications/presentation/notification_providers.dart';
+import 'package:kipto/features/account/presentation/account_providers.dart';
+import 'package:kipto/features/cloud_preview/data/cloud_preview_preferences.dart';
+import 'package:kipto/features/cloud_preview/domain/cloud_preview_models.dart';
+import 'package:kipto/features/cloud_preview/presentation/cloud_preview_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -45,18 +51,42 @@ class SettingsScreen extends ConsumerWidget {
         ref.watch(analysisQueueStatusProvider).valueOrNull ??
         const AnalysisQueueSnapshot();
     final aiServerConfigured = ref.watch(aiServerConfiguredProvider);
+    final cloudPreviewSettings = ref.watch(cloudPreviewSettingsProvider);
+    final cloudPreviewCounts =
+        ref.watch(cloudPreviewCountsProvider).valueOrNull ??
+        const CloudPreviewCounts();
+    final authRepository = ref.watch(authRepositoryProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          _AccountSection(state: authState),
+          _AccountSection(
+            state: authState,
+            user: authRepository.currentUser,
+            onProtect: (provider) => _protect(context, ref, provider),
+            onSignOut: () => _signOut(context, ref),
+          ),
           _CloudSyncSection(
             authState: authState,
             status: syncStatus,
             now: ref.watch(currentTimeProvider),
             onSync: () =>
                 ref.read(syncServiceProvider).syncNow(SyncReason.manual),
+          ),
+          _CloudPreviewSection(
+            settings: cloudPreviewSettings,
+            counts: cloudPreviewCounts,
+            configured:
+                authState?.isAuthenticated == true &&
+                ref.watch(supabaseClientProvider) != null,
+            onModeChanged: (mode) =>
+                _setCloudImageMode(context, ref, mode, cloudPreviewCounts),
+            onBackupNow: () => _backupNow(ref),
+            onPause: ref.read(cloudPreviewSettingsProvider.notifier).pause,
+            onResume: ref.read(cloudPreviewSettingsProvider.notifier).resume,
+            onClearCache: () => _clearPreviewCache(context, ref),
+            onRemoveCloud: () => _removeCloudPreviews(context, ref),
           ),
           _ScreenshotHistorySection(
             state: photoState,
@@ -87,12 +117,7 @@ class SettingsScreen extends ConsumerWidget {
             onPause: ref.read(analysisQueueRunnerProvider).pause,
             onResume: ref.read(analysisQueueRunnerProvider).resume,
           ),
-          const _SettingsSection(
-            title: 'Notifications',
-            icon: Icons.notifications_none,
-            primary: 'Not configured yet',
-            secondary: 'Reminders are stored locally but are not scheduled.',
-          ),
+          const _NotificationsSection(),
           const _SettingsSection(
             title: 'About',
             icon: Icons.info_outline,
@@ -136,6 +161,236 @@ class SettingsScreen extends ConsumerWidget {
     }
     await ref.read(aiAnalysisPreferencesProvider.notifier).setEnabled(enabled);
     await ref.read(analysisQueueRunnerProvider).setEnabled(enabled);
+  }
+
+  Future<void> _protect(
+    BuildContext context,
+    WidgetRef ref,
+    KiptoIdentityProvider provider,
+  ) async {
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      if (provider == KiptoIdentityProvider.apple) {
+        await repository.protectWithApple();
+      } else {
+        await repository.protectWithGoogle();
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Finish protecting your library in the browser.'),
+          ),
+        );
+      }
+    } on KiptoAuthFlowException catch (error) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Could not connect this account'),
+          content: Text(error.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign out of Kipto?'),
+        content: const Text(
+          'Synced Kipto data will be removed from this device. Your cloud '
+          'library and screenshots in Photos will not be deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(accountServiceProvider).signOut();
+  }
+
+  Future<void> _setCloudImageMode(
+    BuildContext context,
+    WidgetRef ref,
+    CloudImageSyncMode mode,
+    CloudPreviewCounts counts,
+  ) async {
+    final controller = ref.read(cloudPreviewSettingsProvider.notifier);
+    if (mode == CloudImageSyncMode.metadataOnly) {
+      await controller.setMode(mode);
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Back up optimized previews?'),
+        content: Text(
+          '${counts.eligible} screenshots can be backed up. Kipto uploads '
+          'smaller private previews; original screenshots remain in Photos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Back up previews'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await controller.setMode(mode);
+    await ref.read(cloudPreviewBackupServiceProvider).enqueueAllMissing();
+  }
+
+  Future<void> _backupNow(WidgetRef ref) async {
+    final backup = ref.read(cloudPreviewBackupServiceProvider);
+    await backup.retryFailed();
+    await backup.enqueueAllMissing();
+    await ref.read(syncServiceProvider).syncNow(SyncReason.manual);
+  }
+
+  Future<void> _clearPreviewCache(BuildContext context, WidgetRef ref) async {
+    await ref.read(cloudPreviewBackupServiceProvider).clearDownloadedPreviews();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Downloaded previews cleared.')),
+      );
+    }
+  }
+
+  Future<void> _removeCloudPreviews(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove cloud screenshot previews?'),
+        content: const Text(
+          'Kipto will keep syncing titles, categories, reminders and other '
+          'metadata. Original screenshots in Photos are not affected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove previews'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref
+          .read(cloudPreviewBackupServiceProvider)
+          .removeAllCloudPreviews();
+      ref.invalidate(cloudPreviewSettingsProvider);
+    }
+  }
+}
+
+class _NotificationsSection extends ConsumerWidget {
+  const _NotificationsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final permission = ref.watch(notificationPermissionStatusProvider);
+    final count = ref.watch(scheduledReminderCountProvider);
+    final status = permission.valueOrNull;
+    final scheduler = ref.read(reminderNotificationSchedulerProvider);
+    final enabled = status == NotificationPermissionStatus.granted;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'Notifications',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    enabled
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_off_outlined,
+                  ),
+                  title: Text(
+                    status == null
+                        ? 'Checking permission…'
+                        : enabled
+                        ? 'Enabled'
+                        : status == NotificationPermissionStatus.notDetermined
+                        ? 'Not enabled yet'
+                        : 'Disabled',
+                  ),
+                  subtitle: Text(
+                    'Scheduled reminders ${count.valueOrNull ?? 0}',
+                  ),
+                  trailing: status == NotificationPermissionStatus.notDetermined
+                      ? TextButton(
+                          onPressed: () async {
+                            await scheduler.requestPermission();
+                            ref.invalidate(
+                              notificationPermissionStatusProvider,
+                            );
+                            ref.invalidate(scheduledReminderCountProvider);
+                          },
+                          child: const Text('Enable'),
+                        )
+                      : null,
+                ),
+                if (status != null &&
+                    status != NotificationPermissionStatus.unavailable)
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('Open notification settings'),
+                    onTap: scheduler.openSettings,
+                  ),
+                if (kDebugMode) ...[
+                  ListTile(
+                    leading: const Icon(Icons.notification_add_outlined),
+                    title: const Text('Send test notification'),
+                    onTap: scheduler.showTest,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.sync_outlined),
+                    title: const Text('Reconcile notifications'),
+                    onTap: () async {
+                      await scheduler.reconcile();
+                      ref.invalidate(scheduledReminderCountProvider);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -239,8 +494,16 @@ class _AiPrivacySection extends StatelessWidget {
 }
 
 class _AccountSection extends StatelessWidget {
-  const _AccountSection({required this.state});
+  const _AccountSection({
+    required this.state,
+    required this.user,
+    required this.onProtect,
+    required this.onSignOut,
+  });
   final KiptoAuthState? state;
+  final KiptoUser? user;
+  final ValueChanged<KiptoIdentityProvider> onProtect;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -254,14 +517,37 @@ class _AccountSection extends StatelessWidget {
       );
     }
     if (status == KiptoAuthStatus.anonymous) {
-      return const _SettingsSection(
+      return _SettingsCard(
         title: 'Account',
-        icon: Icons.cloud_done_outlined,
-        primary: 'Using Kipto without a permanent account',
-        secondary:
-            'Your library is linked to this installation. This anonymous '
-            'account cannot yet be restored on another device. Account '
-            'protection will be available in a future phase.',
+        children: [
+          const ListTile(
+            leading: Icon(Icons.shield_outlined),
+            title: Text('Kipto is not protected'),
+            subtitle: Text(
+              'Protect your library so you can restore it if you change or '
+              'lose this device.',
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: () => onProtect(KiptoIdentityProvider.apple),
+                  icon: const Icon(Icons.apple),
+                  label: const Text('Continue with Apple'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => onProtect(KiptoIdentityProvider.google),
+                  icon: const Icon(Icons.account_circle_outlined),
+                  label: const Text('Continue with Google'),
+                ),
+              ],
+            ),
+          ),
+        ],
       );
     }
     if (status == KiptoAuthStatus.error ||
@@ -273,17 +559,178 @@ class _AccountSection extends StatelessWidget {
         secondary: 'Your local library is safe. Try syncing again later.',
       );
     }
-    return _SettingsSection(
+    if (status != KiptoAuthStatus.permanent) {
+      return const _SettingsSection(
+        title: 'Account',
+        icon: Icons.person_outline,
+        primary: 'Connecting to cloud…',
+        secondary: 'Your local library remains available while Kipto connects.',
+      );
+    }
+    final providers = user?.identityProviders ?? const [];
+    return _SettingsCard(
       title: 'Account',
-      icon: Icons.person_outline,
-      primary: status == KiptoAuthStatus.permanent
-          ? 'Cloud sync active'
-          : 'Connecting to cloud…',
-      secondary: status == KiptoAuthStatus.permanent
-          ? 'Your protected account is connected.'
-          : 'Your local library remains available while Kipto connects.',
+      children: [
+        ListTile(
+          leading: const Icon(Icons.verified_user_outlined),
+          title: const Text('Kipto account protected'),
+          subtitle: Text(
+            providers.isEmpty
+                ? 'A recoverable identity is connected.'
+                : providers
+                      .map(
+                        (provider) => '${_providerName(provider)} · Connected',
+                      )
+                      .join('\n'),
+          ),
+        ),
+        if (!providers.contains(KiptoIdentityProvider.apple))
+          ListTile(
+            leading: const Icon(Icons.apple),
+            title: const Text('Connect Apple'),
+            onTap: () => onProtect(KiptoIdentityProvider.apple),
+          ),
+        if (!providers.contains(KiptoIdentityProvider.google))
+          ListTile(
+            leading: const Icon(Icons.account_circle_outlined),
+            title: const Text('Connect Google'),
+            onTap: () => onProtect(KiptoIdentityProvider.google),
+          ),
+        ListTile(
+          leading: const Icon(Icons.logout),
+          title: const Text('Sign out'),
+          subtitle: const Text(
+            'Cloud data and screenshots in Photos stay intact.',
+          ),
+          onTap: onSignOut,
+        ),
+      ],
     );
   }
+
+  static String _providerName(KiptoIdentityProvider provider) =>
+      provider == KiptoIdentityProvider.apple ? 'Apple' : 'Google';
+}
+
+class _CloudPreviewSection extends StatelessWidget {
+  const _CloudPreviewSection({
+    required this.settings,
+    required this.counts,
+    required this.configured,
+    required this.onModeChanged,
+    required this.onBackupNow,
+    required this.onPause,
+    required this.onResume,
+    required this.onClearCache,
+    required this.onRemoveCloud,
+  });
+
+  final CloudPreviewPreferenceState settings;
+  final CloudPreviewCounts counts;
+  final bool configured;
+  final ValueChanged<CloudImageSyncMode> onModeChanged;
+  final VoidCallback onBackupNow;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onClearCache;
+  final VoidCallback onRemoveCloud;
+
+  @override
+  Widget build(BuildContext context) => _SettingsCard(
+    title: 'Cloud Backup',
+    children: [
+      ListTile(
+        leading: const Icon(Icons.cloud_done_outlined),
+        title: Text(configured ? 'Library synced' : 'Cloud unavailable'),
+        subtitle: const Text(
+          'Original screenshots remain in your photo library. Kipto can store '
+          'smaller optimized previews in your private cloud library.',
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SegmentedButton<CloudImageSyncMode>(
+          segments: const [
+            ButtonSegment(
+              value: CloudImageSyncMode.optimizedPreviews,
+              label: Text('Optimized previews'),
+            ),
+            ButtonSegment(
+              value: CloudImageSyncMode.metadataOnly,
+              label: Text('Metadata only'),
+            ),
+          ],
+          selected: {settings.mode},
+          onSelectionChanged: configured && settings.loaded
+              ? (value) => onModeChanged(value.single)
+              : null,
+        ),
+      ),
+      const SizedBox(height: 8),
+      ListTile(
+        title: Text('${counts.uploaded} backed up · ${counts.waiting} waiting'),
+        subtitle: Text(
+          settings.mode == CloudImageSyncMode.metadataOnly
+              ? "Titles, categories and reminders sync, but new screenshot previews don't."
+              : '${counts.eligible} eligible · ${counts.failed} failed',
+        ),
+        trailing: settings.mode == CloudImageSyncMode.optimizedPreviews
+            ? TextButton(
+                onPressed: configured ? onBackupNow : null,
+                child: const Text('Back up now'),
+              )
+            : null,
+      ),
+      if (settings.mode == CloudImageSyncMode.optimizedPreviews)
+        ListTile(
+          leading: Icon(
+            settings.userPaused
+                ? Icons.play_arrow_outlined
+                : Icons.pause_outlined,
+          ),
+          title: Text(
+            settings.userPaused
+                ? 'Resume preview backup'
+                : 'Pause preview backup',
+          ),
+          onTap: settings.userPaused ? onResume : onPause,
+        ),
+      ListTile(
+        leading: const Icon(Icons.cleaning_services_outlined),
+        title: const Text('Clear downloaded previews'),
+        subtitle: const Text('Only this device cache is cleared.'),
+        onTap: onClearCache,
+      ),
+      if (counts.uploaded > 0)
+        ListTile(
+          leading: const Icon(Icons.cloud_off_outlined),
+          title: const Text('Remove cloud screenshot previews'),
+          subtitle: const Text('Keeps all metadata and Photos originals.'),
+          onTap: onRemoveCloud,
+        ),
+    ],
+  );
+}
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({required this.title, required this.children});
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 26),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+        ),
+        Card(child: Column(children: children)),
+      ],
+    ),
+  );
 }
 
 class _CloudSyncSection extends StatelessWidget {

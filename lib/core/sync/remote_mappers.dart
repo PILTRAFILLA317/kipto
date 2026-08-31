@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:kipto/core/database/app_database.dart';
 import 'package:kipto/core/domain/enums/saved_item_enums.dart';
+import 'package:kipto/core/domain/policies/completed_actions_merge.dart';
 import 'package:kipto/core/sync/remote_models.dart';
 
 RemoteSavedItem savedItemRowToRemote(
@@ -72,35 +73,37 @@ SavedItemsCompanion remoteSavedItemInsert(RemoteSavedItem remote) =>
       remoteServerUpdatedAt: Value(remote.serverUpdatedAt),
     );
 
-SavedItemsCompanion remoteSavedItemUpdate(RemoteSavedItem remote) =>
-    SavedItemsCompanion(
-      ownerId: Value(remote.userId),
-      title: Value(remote.title),
-      summary: Value(remote.summary),
-      category: Value(remote.category),
-      subtype: Value(remote.subtype),
-      intent: Value(remote.intent),
-      status: Value(remote.status),
-      favorite: Value(remote.favorite),
-      capturedAt: Value(remote.capturedAt),
-      eventAt: Value(remote.eventAt),
-      expiresAt: Value(remote.expiresAt),
-      snoozedUntil: Value(remote.snoozedUntil),
-      location: Value(remote.location),
-      entities: Value(remote.entities),
-      availableActions: Value(remote.availableActions),
-      cloudPreviewPath: Value(remote.cloudPreviewPath),
-      imageHash: Value(remote.imageHash),
-      analysisStatus: Value(remote.analysisStatus),
-      analysisVersion: Value(remote.analysisVersion ?? 0),
-      confidence: Value(remote.confidence),
-      createdAt: Value(remote.createdAt),
-      updatedAt: Value(remote.clientUpdatedAt),
-      deletedAt: Value(remote.deletedAt),
-      syncStatus: const Value(SyncStatus.synced),
-      lastSyncedAt: Value(remote.serverUpdatedAt),
-      remoteServerUpdatedAt: Value(remote.serverUpdatedAt),
-    );
+SavedItemsCompanion remoteSavedItemUpdate(
+  RemoteSavedItem remote, {
+  Map<String, Object?> localEntities = const {},
+}) => SavedItemsCompanion(
+  ownerId: Value(remote.userId),
+  title: Value(remote.title),
+  summary: Value(remote.summary),
+  category: Value(remote.category),
+  subtype: Value(remote.subtype),
+  intent: Value(remote.intent),
+  status: Value(remote.status),
+  favorite: Value(remote.favorite),
+  capturedAt: Value(remote.capturedAt),
+  eventAt: Value(remote.eventAt),
+  expiresAt: Value(remote.expiresAt),
+  snoozedUntil: Value(remote.snoozedUntil),
+  location: Value(remote.location),
+  entities: Value(mergeCompletedActions(localEntities, remote.entities)),
+  availableActions: Value(remote.availableActions),
+  cloudPreviewPath: Value(remote.cloudPreviewPath),
+  imageHash: Value(remote.imageHash),
+  analysisStatus: Value(remote.analysisStatus),
+  analysisVersion: Value(remote.analysisVersion ?? 0),
+  confidence: Value(remote.confidence),
+  createdAt: Value(remote.createdAt),
+  updatedAt: Value(remote.clientUpdatedAt),
+  deletedAt: Value(remote.deletedAt),
+  syncStatus: const Value(SyncStatus.synced),
+  lastSyncedAt: Value(remote.serverUpdatedAt),
+  remoteServerUpdatedAt: Value(remote.serverUpdatedAt),
+);
 
 RemoteReminder reminderRowToRemote(
   ReminderRow row, {

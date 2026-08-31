@@ -1,4 +1,4 @@
-# Kipto architecture — Phase 5
+# Kipto architecture — Phase 7
 
 ## Purpose
 
@@ -8,7 +8,11 @@ Phases 3–4 preserve read-only Photos/MediaStore access, anonymous Supabase
 authentication, offline-first metadata synchronization, and the complete
 product query/presentation layer. Phase 5 adds authenticated multimodal
 analysis while preserving Drift as the application's only source of truth.
-Cloud previews, notifications, Calendar, Maps, and billing still do not exist.
+Phase 6 adds explicit device actions and a local-notification projection for
+synchronized reminders. Phase 7 adds private optimized previews, recoverable
+Apple/Google identities, safe logout, and multi-device restoration. Push
+notifications, background daemons, original-image backup, and billing still do
+not exist.
 
 ## Dependency flow
 
@@ -58,10 +62,39 @@ local photo asset → AnalysisImagePreparationService
 The Edge Function never writes a SavedItem. Its service-role client is scoped
 to atomic quota reservation and aggregate usage recording only.
 
+Actions cross a separate application boundary. Presentation coordinates only
+user input and feedback; it never calls a platform integration directly:
+
+```text
+Card / Detail action
+        ↓
+SavedItemActionFlow (confirmation or data edit)
+        ↓
+SavedItemActionExecutor (revalidation + typed result)
+        ↓
+Calendar / Maps / URL / Search / Clipboard / Tracking service
+        or ReminderActionService / SavedItemsRepository
+        ↓
+native system UI or local-first Drift write
+```
+
+Reminder notifications are deliberately one-way projections of local Drift
+state, not another domain store:
+
+```text
+reminders + saved_items (source of truth)
+        ↓
+ReminderNotificationScheduler.reconcile()
+        ↓
+notification_mappings (device-local identity projection)
+        ↓
+flutter_local_notifications → operating system
+```
+
 Presentation watches repository streams and renders `AsyncValue` loading,
 error, empty, and data states. Widgets never issue Drift queries. Repository
-interfaces are independent from Flutter and can be replaced in tests or wrapped
-by a future synchronization layer.
+interfaces are independent from Flutter and can be replaced in tests; local
+writes are synchronized by the existing service behind those boundaries.
 
 The persistent database is opened by `drift_flutter` as `kipto.sqlite` in the
 platform application documents directory. Native work runs through Drift's
@@ -107,11 +140,17 @@ location. Presentation excludes this key from detected entities. Using the
 existing cloud-parity JSON boundary avoids duplicate Drift/Postgres columns,
 while explicit `titleSource` and `categorySource` values protect user edits.
 
+Phase 6 similarly reserves `__kiptoCompletedActions` for the small subset of
+actions whose completion is meaningful: Add to Calendar, Create Reminder, and
+Save. Values are UTC ISO-8601 timestamps keyed by controlled action storage
+value. Presentation excludes the map from detected information. Opening Maps,
+a browser, or tracking is intentionally not persisted as task completion.
+
 SQLite stores date/time values as ISO-8601 text with explicit offsets. Domain
 writes normalize dates to UTC and UI formatting converts them to device-local
 time.
 
-## Drift schema v4
+## Drift schema v6
 
 `saved_items` uses a string UUID primary key and indexes for `status`,
 `category`, `captured_at`, `updated_at`, and `deleted_at`. It never stores image
@@ -125,13 +164,13 @@ last accessible screenshot count, selected import scope, and scanner version.
 This avoids treating in-memory controller state as durable scanner state.
 
 `reminders` uses a string UUID primary key and a foreign key to
-`saved_items.id`. It persists local reminder intent only; Phase 1 does not
-schedule operating-system notifications.
+`saved_items.id`. It is synchronized domain state and the only source of truth
+for reminder intent, including scheduled time, completion, and soft deletion.
 
 `sync_queue` records an entity type, entity UUID, create/update/delete
 operation, creation time, attempts, last attempt, and last error. It has no
-timer, worker, network client, or fake server. It is only the durable queue
-primitive a future `SyncService` will consume.
+timer or network client of its own. It is the durable primitive consumed by the
+existing foreground `SyncService`.
 
 `analysis_queue` is a separate, device-local table keyed by SavedItem ID. It
 stores only `queued`, `processing`, `retryScheduled`, or `paused` plus priority,
@@ -139,7 +178,12 @@ attempts, retry/start/enqueue timestamps, and a controlled last error code. It
 never stores image or base64 data. A foreign key cascades queue removal when its
 SavedItem is removed locally.
 
-`schemaVersion` is 4. The explicit v1 → v2 migration creates only the scanner
+`notification_mappings` is device-local and maps a reminder UUID to a unique
+integer notification ID, the scheduled UTC instant, and the IANA timezone used
+to program it. The foreign key cascades when a reminder is physically removed.
+The table is rebuildable from active reminder rows and is never synchronized.
+
+`schemaVersion` is 6. The explicit v1 → v2 migration creates only the scanner
 state table and unique local-asset index. Existing SavedItems, reminders,
 favorites, statuses, and soft deletes are preserved. Foreign keys remain enabled
 before opening.
@@ -154,6 +198,84 @@ state survive the migration.
 The v3 → v4 migration creates `analysis_queue` and its due-work index with
 `CREATE ... IF NOT EXISTS`; it does not rewrite or delete SavedItems.
 Interrupted `processing` rows return to `queued` when the runner initializes.
+
+The v4 → v5 migration creates `notification_mappings` and its unique integer-ID
+index with `CREATE ... IF NOT EXISTS`. Existing SavedItems, reminders, analysis
+work, sync state, local asset links, and tombstones are not rewritten or
+deleted.
+
+The v5 → v6 migration creates `preview_transfer_jobs`. It is a file-specific,
+device-local queue keyed by SavedItem ID with upload/delete operation, bounded
+retry state, attempt count, next attempt, safe error code, and creation time.
+It stores no bytes. Its foreign key cascades only on physical SavedItem removal;
+normal tombstones remain available long enough to complete Storage cleanup.
+
+## Cloud previews
+
+Cloud previews and metadata have separate failure domains:
+
+```text
+Photos original → on-device aspect-fit JPEG → preview_transfer_jobs
+                                          → private Supabase Storage
+                                          → Drift.cloudPreviewPath
+                                          → sync_queue → Postgres
+```
+
+The generator uses `photo_manager` directly, requests JPEG at quality 80 and a
+maximum 900 px width, preserves aspect ratio, caps height at 8000 px and total
+pixels at 8 million, and retries exceptional files at quality 68. It never
+loads a preview during a gallery scan and never overwrites or uploads the
+original. `cloudPreviewVersion` is 1 and the deterministic object path is
+`{currentAuthUser}/{savedItemId}/preview-v1.jpg`.
+
+The `kipto-previews` bucket is private. Four Storage policies scope SELECT,
+INSERT, UPDATE, and DELETE to objects whose first path segment is the current
+`auth.uid()`. `cloudPreviewPath` contains only that object path. Storage uploads
+use upsert, while Drift remains the SavedItem source of truth. A successful
+upload followed by a failed local write is reconciled by retrying the same path,
+so it cannot create duplicate objects.
+
+Foreground processing uses at most two concurrent uploads. Retryable failures
+stop after three attempts until explicit retry; missing originals stop without
+an infinite loop. Deletes are queued only after the SavedItem tombstone commits,
+and bulk removal uses Storage batches of at most 100 paths.
+
+Downloaded previews are validated as non-empty bounded JPEG/WebP files, written
+under application support, named from SavedItem ID plus a stable object-path
+hash, and evicted oldest-accessed-first above 200 MB. Requests are deduplicated
+per path and limited to three concurrent downloads. `SavedItemImage` prioritizes
+the local Photos thumbnail, then cached/downloaded cloud preview, then a
+placeholder. The cache remains useful offline and is never written to Photos.
+
+## Recoverable accounts and restore
+
+First-run routing waits for Supabase's session recovery without creating a user.
+With no session, the welcome screen offers restore via Apple/Google or **Get
+started**, which then creates the anonymous identity. Existing anonymous
+sessions bypass welcome unchanged.
+
+Protecting a library calls OAuth `linkIdentity` on the current Supabase user and
+checks that the UUID is unchanged. Restoring calls `signInWithOAuth` with no
+disposable anonymous session. The PKCE callbacks are
+`com.example.kipto://auth/callback?flow=protect` and
+`com.example.kipto://auth/callback?flow=restore`; the flow marker returns a
+completed link to Settings and a completed restore to Inbox. Callback errors
+render a safe in-app message and do not switch identities. The placeholder
+identifier must be replaced consistently before production. Manual Linking and
+provider credentials are external Supabase/Apple/Google configuration. No
+provider secret ships in the app.
+
+A new-device permanent session runs the existing initial pull, restores
+SavedItems and reminders into Drift, and reconciles notifications using the
+device's local permission. Cloud-only SavedItems have `localAssetId=null` and
+`originalAvailable=false`; their previews download only when visible. AI opt-in,
+Photos permission, notification permission, and appearance do not restore.
+
+Confirmed permanent sign-out stops realtime/sync, analysis, and preview work;
+cancels managed local notifications; clears downloaded previews and all
+account-scoped Drift rows; signs out; then returns to welcome. Cloud content and
+Photos are untouched. Anonymous sign-out is blocked, and libraries are never
+silently merged or switched in-place.
 
 ## Cloud synchronization
 
@@ -176,12 +298,25 @@ last-write-wins on `client_updated_at`; device clock skew is a known MVP
 limitation. The conflict strategy is isolated behind remote models/mappers so
 it can be replaced later.
 
+Completed actions are the one field with a key-wise merge layered over that
+row-level policy. On pull, the mapper unions local and remote controlled action
+keys and keeps the newest valid timestamp. Before a cloud update, the Phase 6
+Postgres trigger performs the same merge against the stored row. This prevents
+two devices that complete different actions offline from erasing each other's
+map entries while preserving the existing remote model and `entities_json`
+column.
+
 Supabase contains `saved_items`, `reminders`, `devices`, and the private
 `analysis_usage_daily` aggregate. RLS and grants
 restrict every operation to `auth.uid() = user_id`; anonymous Auth users use the
 authenticated Postgres role. Database triggers emit private
 `user:<userId>:sync` Broadcast events. Payloads never mutate Drift directly:
 they only invalidate and schedule the normal pull/merge path.
+
+Supabase does not contain notification IDs, notification mappings, scheduled
+projection metadata, or an authoritative notification-permission flag. A
+reminder pulled from another device is written to Drift and then causes local
+reconciliation on the receiving device.
 
 ## Multimodal analysis
 
@@ -227,6 +362,133 @@ on the table or RPCs. The function's admin client uses service-role-only
 security-definer RPCs to reserve `ANALYSIS_DAILY_LIMIT` atomically (default
 2000) and record success/error/token aggregates. Logs contain safe identifiers
 and metrics, never image/base64 or extracted content.
+
+## Device action execution
+
+`SavedItemActionType` remains the controlled vocabulary. Presentation metadata
+centralizes labels, icons, accessibility descriptions, completion labels, and
+confirmation requirements. A category-aware policy chooses one primary action
+and stable secondary ordering without inventing actions absent from the item.
+Cards and Detail use the same policy.
+
+`SavedItemActionFlow` collects only the user input an action needs: editable
+Calendar draft, reminder preset/custom time, duplicate Calendar confirmation,
+or code selection. `SavedItemActionExecutor` then revalidates the current
+request and returns `ActionExecutionResult`; exceptions are converted into safe
+typed failures. Debug logging contains SavedItem ID, controlled action type,
+duration, and safe error code only—never URLs, copied codes, location text, or
+notification content.
+
+No action runs automatically after AI analysis, sync, import, notification
+delivery, or background lifecycle changes. Integrations may launch offline when
+the operating system supports them. Network-dependent external destinations can
+fail honestly without rolling back existing local SavedItem state.
+
+### Calendar
+
+`CalendarEventDraftBuilder` derives title, start, one-hour default end,
+all-day state, location, notes, and an optional validated URL. Missing event
+dates require explicit manual entry. The user can edit date, time, all-day,
+duration, location, and title before the platform editor opens.
+
+iOS uses the narrow `app.kipto/calendar` platform channel and
+`EKEventEditViewController`. On iOS 17+ the system editor is presented without
+requesting full calendar access. The iOS 15–16 path requests the legacy EventKit
+event access only after the user starts the action. The adapter reports saved,
+cancelled, permission denied, or unavailable, so only a confirmed save records
+the Calendar completion.
+
+Android sends `ACTION_INSERT` to `CalendarContract.Events` with the draft as
+extras. It neither reads calendars nor writes the provider directly, so the
+manifest contains no `READ_CALENDAR` or `WRITE_CALENDAR`. Calendar apps do not
+standardize a saved/cancelled activity result for this intent; Android therefore
+reports only that the editor launched and does not persist a false completion.
+
+Kipto cannot read Calendar to deduplicate events. A persisted Calendar
+completion changes the CTA to its completed label; repeating it requires an
+explicit warning and consent. Completing Calendar never changes SavedItem
+status to Done.
+
+### Maps, browser, tracking, clipboard, and Save
+
+`MapsQueryBuilder` prefers structured place/address values, then the SavedItem
+location. iOS launches Apple
+Maps HTTPS, Android launches `geo:0,0?q=...`, and both fall back to a Google
+Maps HTTPS search. Query parameters use `Uri` encoding. There is no Google Maps
+SDK, API key, embedded map, or location permission.
+
+`SafeUriPolicy` permits only HTTP(S) with a non-empty host and empty userinfo.
+It rejects whitespace, overlong input, malformed values, credential-bearing
+URLs, and dangerous schemes such as `javascript:`, `data:`, and `file:`. The
+only normalization is a trimmed `www.` value promoted to HTTPS. Browser/search
+actions always use an external application.
+
+Search composes a de-duplicated, length-bounded query from controlled SavedItem
+context. Tracking tries a validated explicit URL first, then an encoded carrier
+plus tracking-code search, then a tracking-code-only search. Copy Code exposes
+only controlled coupon, tracking, or order-number entity keys and lets the user
+choose when multiple values exist. Save sets Favorite on the same SavedItem and
+records its completion in one synchronized local transaction; it never creates
+another SavedItem.
+
+Opening Maps, a URL, search, or tracking means the system accepted the launch.
+It does not mean the destination loaded or the user's real-world task finished,
+so those actions never enter `__kiptoCompletedActions`.
+
+## Reminder notification projection
+
+`ReminderActionService` persists a future reminder before interacting with the
+notification system, then records the Create Reminder completion. Suggested
+times include later today, tomorrow, weekend, next week, before expiry, before
+event, and a custom date/time picker. Edit changes the same row; completion and
+deletion respectively set domain completion and the existing soft-delete
+tombstone. Snooze remains an independent SavedItem workflow field and never
+implicitly creates a notification.
+
+Notification permission is requested only after explicit user intent: creating
+the first reminder or pressing Enable in Settings. Initialization merely reads
+the real platform state. A denial does not roll back the reminder; UI explains
+that notifications are disabled and links to app notification settings. The
+small SharedPreferences marker only distinguishes never-requested from denied;
+the OS result remains authoritative.
+
+`FlutterReminderNotificationGateway` initializes
+`flutter_local_notifications` without prompting, creates the default-importance
+Android `kipto_reminders` channel, and schedules with minimal title/body and an
+ID-only payload. Android declares `POST_NOTIFICATIONS`, boot reception, the
+scheduled notification receiver, and boot/package-replacement receiver. It does
+not declare exact-alarm or full-screen-intent permissions. Scheduling uses
+`inexactAllowWhileIdle`; platform power management may introduce delivery
+margin. Already scheduled notifications need no network connection to fire.
+
+`DeviceTimeZoneService` initializes the IANA timezone database, asks
+`flutter_timezone` for the current identifier, and falls back conservatively to
+UTC. Reminder instants remain UTC domain values; `zonedSchedule` receives the
+equivalent local `TZDateTime`. A changed timezone invalidates the stored mapping
+and reprograms the same instant for the new zone.
+
+Reconciliation is serialized, repeatable, and idempotent. It runs during
+notification initialization, app resume, explicit permission changes, every
+reminder create/edit/complete/delete, SavedItem soft deletion, and after sync
+pulls reminders. It reads the next 50 pending future reminders, keeps matching
+mappings, cancels stale/expired/out-of-window mappings, and schedules only
+missing or changed candidates. A concurrent request sets a single follow-up
+pass instead of creating competing schedulers. The bounded 50 policy respects
+iOS's small pending-notification capacity and avoids resurrecting historical
+reminders; reminders beyond the window are scheduled by a later reconciliation.
+
+Each installation allocates its own stable integer IDs in
+`notification_mappings`. These IDs and mappings never sync. The synchronized
+Reminder row does, so another device pulls it into Drift and independently
+creates its local projection if that device has permission. There is no push or
+remote notification service.
+
+Notification payloads encode only `savedItemId` and `reminderId`. Runtime taps
+and cold-start launch details pass through `NotificationRouteResolver`, which
+validates the item in Drift before routing with `go_router`. An active item opens
+SavedItem Detail; a malformed payload or missing/soft-deleted item opens Inbox.
+Device integration errors are caught during app lifecycle setup so they cannot
+prevent the offline-first UI from opening.
 
 ## Photo access and detection
 
@@ -297,9 +559,10 @@ DAO rather than rebuilt from `watchAll()` in widgets. Category/unprocessed
 counts are exposed as their own stream.
 
 `SavedItemImage` is the only image component used by SavedItem cards and
-Detail. It currently resolves local PhotoManager thumbnails or a first-class
-placeholder, and owns fullscreen zoom. It is intentionally ready for a later
-cached/remote preview source without changing feature screens.
+Detail. It resolves a local PhotoManager thumbnail first, then a validated
+cached or lazily downloaded private preview, then a first-class placeholder,
+and owns fullscreen zoom. Feature screens never depend directly on
+PhotoManager or Supabase Storage.
 
 User notes use the reserved `SavedItem.userNoteEntityKey` inside the existing
 synchronized `entities` map. The domain exposes `userNote` separately and
@@ -307,8 +570,9 @@ removes it from `detectedEntities`, so presentation never confuses user-authored
 content with detected metadata. Because `entities_json` already participates in
 local-first writes and cloud mapping, notes require no schema change.
 
-`RemindersRepository` supports per-item watches, creation, completion, soft
-delete, and future pending reminders. `SyncQueueRepository` supports enqueue,
+`RemindersRepository` supports per-item watches, creation, editing, completion,
+soft delete, and future pending reminders. Each mutation notifies the local
+projection scheduler after commit. `SyncQueueRepository` supports enqueue,
 pending lists/streams, completion/removal, and attempt/error recording.
 
 ## Development data
@@ -341,7 +605,7 @@ favorites, expiry/event/snooze dates, actions, and a reminder. It is guarded by
 16. The UI never reads directly from Supabase.
 17. Every synchronized write happens locally first.
 18. Supabase never receives `localAssetId` or other device-local fields.
-19. Screenshot bytes are never written to Supabase Postgres or Storage.
+19. Original screenshot bytes are never written to Supabase Postgres or Storage.
 20. Normal deletes are synchronized tombstones.
 21. Anonymous and permanent users share the same ownership model.
 22. Realtime invalidates; its payload is never a second source of truth.
@@ -376,13 +640,48 @@ favorites, expiry/event/snooze dates, actions, and a reminder. It is guarded by
 48. Enabling AI analysis is explicit per device.
 49. Bulk analysis is sequential and bounded, never unbounded concurrency.
 50. AI usage limits are enforced server-side.
+51. AI suggests actions; only the user executes them.
+52. External URLs are validated before launch.
+53. Calendar creation uses system confirmation UI.
+54. Kipto does not require calendar read access for its MVP.
+55. Maps uses external system apps/URLs, not a map SDK.
+56. Reminder rows are the source of truth; notifications are a device-local
+    projection.
+57. Notification permission is requested only after explicit user intent.
+58. A denied notification permission never prevents a Reminder from being
+    saved.
+59. Notification identifiers are device-local and never synchronized.
+60. Notification reconciliation is idempotent.
+61. Kipto schedules only a bounded set of upcoming local notifications.
+62. Action success never automatically marks the entire SavedItem done.
+63. Opening an external app is not equivalent to completing the underlying
+    real-world task.
+64. Device integrations never bypass Drift for synchronized state changes.
+65. Original screenshots never enter Kipto cloud storage.
+66. Cloud screenshot images are optimized previews only.
+67. The preview bucket is private.
+68. `cloudPreviewPath` stores an object path, never a signed URL.
+69. Preview generation happens on-device.
+70. Preview upload and metadata sync are separate queues.
+71. SavedItemImage prioritizes local original over cloud preview.
+72. Restoring Kipto restores the library, not the original photo library.
+73. Protecting an anonymous library preserves the Supabase user UUID.
+74. Restoring an existing library signs in; it does not link to a disposable
+    anonymous user.
+75. Account changes never silently merge libraries.
+76. Provider secrets never ship in the Flutter application.
+77. AI opt-in, Photos permission, and notification permission remain
+    device-local.
+78. Logging never includes screenshot bytes or OAuth tokens.
 
-## Not implemented in Phase 5
+## Not implemented in Phase 7
 
-There is no OCR pre-pass, image upload/download or cloud preview generation,
-permanent login UI, background/closed-app analysis, notifications, Calendar,
-Maps, tracking integration, WebView, RevenueCat, embeddings, or OpenAI Batch
-path. Available external actions are display-only and labeled accordingly.
-Gallery observation, sync triggers, and analysis are foreground-only; no
-WorkManager, BGTaskScheduler, Android foreground service, or closed-app polling
-is used.
+There is no original screenshot backup, automatic Photos re-linking across
+devices, account merge, fast account switching, identity unlink UI, email/
+password, magic links, background file daemon, push notifications, remote
+notification service, system Reminders integration, Calendar read/
+deduplication, embedded Maps SDK, carrier API, WebView, RevenueCat, sharing,
+web app, embeddings, or OpenAI Batch path. Gallery observation, sync, analysis,
+preview transfer, and notification reconciliation remain foreground lifecycle
+work; no WorkManager, BGTaskScheduler, Android foreground service, closed-app
+polling, or exact-alarm permission is used.

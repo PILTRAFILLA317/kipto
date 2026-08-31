@@ -20,6 +20,8 @@ abstract interface class SavedItemsRepository {
   Future<void> archive(String id);
   Future<void> markDone(String id);
   Future<void> toggleFavorite(String id);
+  Future<void> save(String id);
+  Future<void> markActionCompleted(String id, SavedItemActionType action);
   Future<void> snooze(String id, DateTime until);
   Future<void> restore(String id);
   Future<void> softDelete(String id);

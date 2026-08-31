@@ -20,9 +20,25 @@ final class KiptoAuthState {
 }
 
 final class KiptoUser {
-  const KiptoUser({required this.id, required this.isAnonymous});
+  const KiptoUser({
+    required this.id,
+    required this.isAnonymous,
+    this.identityProviders = const [],
+  });
   final String id;
   final bool isAnonymous;
+  final List<KiptoIdentityProvider> identityProviders;
+}
+
+enum KiptoIdentityProvider { apple, google }
+
+final class KiptoAuthFlowException implements Exception {
+  const KiptoAuthFlowException(this.code, this.message);
+  final String code;
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 final class KiptoSession {
