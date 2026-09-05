@@ -1,37 +1,26 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:kipto/core/database/converters/json_converters.dart';
+import 'package:kipto/core/database/daos/items_dao.dart';
 import 'package:kipto/core/database/daos/reminders_dao.dart';
-import 'package:kipto/core/database/daos/screenshot_import_state_dao.dart';
-import 'package:kipto/core/database/daos/saved_items_dao.dart';
 import 'package:kipto/core/database/daos/sync_queue_dao.dart';
-import 'package:kipto/core/database/tables/reminders.dart';
 import 'package:kipto/core/database/tables/cloud_sync_state.dart';
-import 'package:kipto/core/database/tables/screenshot_import_state.dart';
-import 'package:kipto/core/database/tables/saved_items.dart';
+import 'package:kipto/core/database/tables/items.dart';
+import 'package:kipto/core/database/tables/reminders.dart';
 import 'package:kipto/core/database/tables/sync_queue.dart';
-import 'package:kipto/core/database/tables/preview_transfer_jobs.dart';
-import 'package:kipto/core/domain/enums/saved_item_enums.dart';
+import 'package:kipto/core/domain/enums/item_enums.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [
-    SavedItems,
-    Reminders,
-    SyncQueue,
-    ScreenshotImportStates,
-    CloudSyncStates,
-    PreviewTransferJobs,
-  ],
-  daos: [SavedItemsDao, RemindersDao, SyncQueueDao, ScreenshotImportStateDao],
+  tables: [Items, Reminders, SyncQueue, CloudSyncStates],
+  daos: [ItemsDao, RemindersDao, SyncQueueDao],
 )
 final class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'kipto'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   DriftDatabaseOptions get options =>
@@ -41,72 +30,32 @@ final class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
-      await _createAnalysisQueue();
       await _createNotificationMappings();
     },
     onUpgrade: (migrator, from, to) async {
       if (from >= to) return;
-      if (from == 1) {
-        await migrator.createTable(screenshotImportStates);
-        await customStatement(
-          'CREATE UNIQUE INDEX IF NOT EXISTS '
-          'saved_items_local_asset_id_unique_idx '
-          'ON saved_items (local_asset_id)',
-        );
-      }
-      if (from < 3) {
-        if (!await _columnExists('saved_items', 'remote_server_updated_at')) {
-          await migrator.addColumn(
-            savedItems,
-            savedItems.remoteServerUpdatedAt,
-          );
-        }
-        if (!await _columnExists('reminders', 'last_synced_at')) {
-          await migrator.addColumn(reminders, reminders.lastSyncedAt);
-        }
-        if (!await _columnExists('reminders', 'remote_server_updated_at')) {
-          await migrator.addColumn(reminders, reminders.remoteServerUpdatedAt);
-        }
-        if (!await _tableExists('cloud_sync_states')) {
-          await migrator.createTable(cloudSyncStates);
-        }
-      }
-      if (from < 4) {
-        await _createAnalysisQueue();
-      }
-      if (from < 5) {
+      if (from < 7) {
+        // Pre-release product reset: legacy Screenshot Inbox data is not
+        // meaningful in Life Admin and is intentionally discarded.
+        await customStatement('DROP TABLE IF EXISTS notification_mappings');
+        await customStatement('DROP TABLE IF EXISTS preview_transfer_jobs');
+        await customStatement('DROP TABLE IF EXISTS analysis_queue');
+        await customStatement('DROP TABLE IF EXISTS screenshot_import_states');
+        await customStatement('DROP TABLE IF EXISTS reminders');
+        await customStatement('DROP TABLE IF EXISTS saved_items');
+        await customStatement('DROP TABLE IF EXISTS sync_queue');
+        await customStatement('DROP TABLE IF EXISTS cloud_sync_states');
+        await migrator.createTable(items);
+        await migrator.createTable(reminders);
+        await migrator.createTable(syncQueue);
+        await migrator.createTable(cloudSyncStates);
         await _createNotificationMappings();
-      }
-      if (from < 6 && !await _tableExists('preview_transfer_jobs')) {
-        await migrator.createTable(previewTransferJobs);
       }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
-
-  Future<void> _createAnalysisQueue() async {
-    await customStatement('''
-      CREATE TABLE IF NOT EXISTS analysis_queue (
-        saved_item_id TEXT NOT NULL PRIMARY KEY
-          REFERENCES saved_items(id) ON DELETE CASCADE,
-        state TEXT NOT NULL CHECK (
-          state IN ('queued', 'processing', 'retryScheduled', 'paused')
-        ),
-        priority INTEGER NOT NULL DEFAULT 0,
-        attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
-        next_attempt_at TEXT,
-        enqueued_at TEXT NOT NULL,
-        started_at TEXT,
-        last_error_code TEXT
-      )
-    ''');
-    await customStatement('''
-      CREATE INDEX IF NOT EXISTS analysis_queue_due_idx
-      ON analysis_queue (state, next_attempt_at, priority, enqueued_at)
-    ''');
-  }
 
   Future<void> _createNotificationMappings() async {
     await customStatement('''
@@ -122,18 +71,5 @@ final class AppDatabase extends _$AppDatabase {
       CREATE UNIQUE INDEX IF NOT EXISTS notification_mappings_id_idx
       ON notification_mappings (notification_id)
     ''');
-  }
-
-  Future<bool> _columnExists(String table, String column) async {
-    final rows = await customSelect('PRAGMA table_info($table)').get();
-    return rows.any((row) => row.data['name'] == column);
-  }
-
-  Future<bool> _tableExists(String table) async {
-    final row = await customSelect(
-      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
-      variables: [Variable.withString(table)],
-    ).getSingleOrNull();
-    return row != null;
   }
 }

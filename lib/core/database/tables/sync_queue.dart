@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:kipto/core/domain/enums/saved_item_enums.dart';
+import 'package:kipto/core/domain/enums/item_enums.dart';
 
 @DataClassName('SyncQueueRow')
 @TableIndex(name: 'sync_queue_created_at_idx', columns: {#createdAt})

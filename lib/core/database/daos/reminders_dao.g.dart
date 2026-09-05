@@ -4,7 +4,7 @@ part of 'reminders_dao.dart';
 
 // ignore_for_file: type=lint
 mixin _$RemindersDaoMixin on DatabaseAccessor<AppDatabase> {
-  $SavedItemsTable get savedItems => attachedDatabase.savedItems;
+  $ItemsTable get items => attachedDatabase.items;
   $RemindersTable get reminders => attachedDatabase.reminders;
   RemindersDaoManager get managers => RemindersDaoManager(this);
 }
@@ -12,8 +12,8 @@ mixin _$RemindersDaoMixin on DatabaseAccessor<AppDatabase> {
 class RemindersDaoManager {
   final _$RemindersDaoMixin _db;
   RemindersDaoManager(this._db);
-  $$SavedItemsTableTableManager get savedItems =>
-      $$SavedItemsTableTableManager(_db.attachedDatabase, _db.savedItems);
+  $$ItemsTableTableManager get items =>
+      $$ItemsTableTableManager(_db.attachedDatabase, _db.items);
   $$RemindersTableTableManager get reminders =>
       $$RemindersTableTableManager(_db.attachedDatabase, _db.reminders);
 }

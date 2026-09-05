@@ -3,8 +3,7 @@
 import 'package:clock/clock.dart';
 import 'package:kipto/core/auth/auth_repository.dart';
 import 'package:kipto/core/database/app_database.dart';
-import 'package:kipto/core/domain/enums/saved_item_enums.dart';
-import 'package:kipto/dev/seed/development_seed.dart';
+import 'package:kipto/core/domain/enums/item_enums.dart';
 import 'package:uuid/uuid.dart';
 
 final class LocalSyncCoordinator {
@@ -29,7 +28,6 @@ final class LocalSyncCoordinator {
   String? get activeOwnerId => _auth.userId;
   bool canSyncOwner(String? ownerId) =>
       ownerId != null && ownerId == _auth.userId;
-  bool isDemoId(String id) => DevelopmentSeed.knownItemIds.contains(id);
 
   Future<void> enqueue({
     required SyncEntityType entityType,

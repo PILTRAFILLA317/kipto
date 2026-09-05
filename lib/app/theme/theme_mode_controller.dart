@@ -9,7 +9,7 @@ final themeModeProvider = StateNotifierProvider<ThemeModeController, ThemeMode>(
 );
 
 final class ThemeModeController extends StateNotifier<ThemeMode> {
-  ThemeModeController() : super(ThemeMode.system) {
+  ThemeModeController() : super(ThemeMode.dark) {
     _load();
   }
 
@@ -22,7 +22,7 @@ final class ThemeModeController extends StateNotifier<ThemeMode> {
       if (!mounted || stored == null || _changedByUser) return;
       state = ThemeMode.values.firstWhere(
         (mode) => mode.name == stored,
-        orElse: () => ThemeMode.system,
+        orElse: () => ThemeMode.dark,
       );
     } on Object {
       // Appearance persistence must never prevent the offline app from opening.

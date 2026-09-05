@@ -4,38 +4,36 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:kipto/core/database/app_database.dart';
 import 'package:kipto/core/domain/enums/item_enums.dart';
-import 'package:kipto/core/domain/models/reminder.dart';
-import 'package:kipto/core/repositories/reminders_repository.dart';
+import 'package:kipto/core/domain/models/item.dart';
+import 'package:kipto/core/repositories/items_repository.dart';
 import 'package:kipto/core/sync/local_sync_coordinator.dart';
 import 'package:uuid/uuid.dart';
 
-final class DriftRemindersRepository implements RemindersRepository {
-  DriftRemindersRepository(
+final class DriftItemsRepository implements ItemsRepository {
+  DriftItemsRepository(
     this._database, {
     required LocalSyncCoordinator syncCoordinator,
-    required Future<void> Function() onChanged,
     Clock? clock,
     Uuid? uuid,
   }) : _syncCoordinator = syncCoordinator,
-       _onChanged = onChanged,
        _clock = clock ?? const Clock(),
        _uuid = uuid ?? const Uuid();
 
   final AppDatabase _database;
   final LocalSyncCoordinator _syncCoordinator;
-  final Future<void> Function() _onChanged;
   final Clock _clock;
   final Uuid _uuid;
+
   DateTime get _now => _clock.now().toUtc();
 
   @override
-  Stream<List<Reminder>> watchForItem(String itemId) => _database.remindersDao
-      .watchForItem(itemId)
-      .map((rows) => rows.map(_fromRow).toList());
+  Stream<List<Item>> watchActive() => _database.itemsDao.watchActive().map(
+    (rows) => rows.map(_fromRow).toList(),
+  );
 
   @override
-  Future<Reminder?> findById(String id, {bool includeDeleted = false}) async {
-    final row = await _database.remindersDao.findById(
+  Future<Item?> findById(String id, {bool includeDeleted = false}) async {
+    final row = await _database.itemsDao.findById(
       id,
       includeDeleted: includeDeleted,
     );
@@ -43,25 +41,23 @@ final class DriftRemindersRepository implements RemindersRepository {
   }
 
   @override
-  Future<Reminder> create({
-    required String itemId,
-    required DateTime remindAt,
-  }) async {
+  Future<Item> create({required String title, String summary = ''}) async {
+    final normalizedTitle = title.trim();
+    if (normalizedTitle.isEmpty) throw ArgumentError.value(title, 'title');
     final now = _now;
     final id = _uuid.v4();
-    final item = await _database.itemsDao.findById(itemId);
-    if (item == null) throw StateError('Cannot remind for a missing item');
     final ownerId = _syncCoordinator.activeOwnerId;
     final syncStatus = ownerId == null
         ? SyncStatus.localOnly
         : SyncStatus.pendingCreate;
     await _database.transaction(() async {
-      await _database.remindersDao.insertReminder(
-        RemindersCompanion.insert(
+      await _database.itemsDao.insertItem(
+        ItemsCompanion.insert(
           id: id,
           ownerId: Value(ownerId),
-          itemId: itemId,
-          remindAt: remindAt.toUtc(),
+          title: normalizedTitle,
+          summary: Value(summary.trim()),
+          status: ItemStatus.active,
           createdAt: now,
           updatedAt: now,
           syncStatus: syncStatus,
@@ -69,35 +65,39 @@ final class DriftRemindersRepository implements RemindersRepository {
       );
       if (ownerId != null) {
         await _syncCoordinator.enqueue(
-          entityType: SyncEntityType.reminder,
+          entityType: SyncEntityType.item,
           entityId: id,
           operation: SyncOperation.create,
         );
       }
     });
     _syncCoordinator.notifyAfterCommit();
-    await _onChanged();
     return (await findById(id))!;
   }
 
   @override
-  Future<void> edit(String id, DateTime remindAt) =>
-      _mutate(id, RemindersCompanion(remindAt: Value(remindAt.toUtc())));
-
-  @override
-  Future<void> complete(String id) =>
-      _mutate(id, RemindersCompanion(completedAt: Value(_now)));
+  Future<void> setStatus(String id, ItemStatus status) => _mutate(
+    id,
+    ItemsCompanion(
+      status: Value(status),
+      resolvedAt: Value(status == ItemStatus.resolved ? _now : null),
+    ),
+  );
 
   @override
   Future<void> delete(String id) =>
-      _mutate(id, RemindersCompanion(deletedAt: Value(_now)));
+      _mutate(id, ItemsCompanion(deletedAt: Value(_now)));
 
-  Future<void> _mutate(String id, RemindersCompanion changes) async {
-    final existing = await _database.remindersDao.findById(id);
+  Future<void> _mutate(String id, ItemsCompanion changes) async {
+    final existing = await _database.itemsDao.findById(
+      id,
+      includeDeleted: true,
+    );
     if (existing == null) return;
-    final syncable = _syncCoordinator.canSyncOwner(existing.ownerId);
+    final ownerId = existing.ownerId;
+    final syncable = _syncCoordinator.canSyncOwner(ownerId);
     await _database.transaction(() async {
-      await _database.remindersDao.updateFields(
+      await _database.itemsDao.updateFields(
         id,
         changes.copyWith(
           updatedAt: Value(_now),
@@ -108,7 +108,7 @@ final class DriftRemindersRepository implements RemindersRepository {
       );
       if (syncable) {
         await _syncCoordinator.enqueue(
-          entityType: SyncEntityType.reminder,
+          entityType: SyncEntityType.item,
           entityId: id,
           operation: changes.deletedAt.present
               ? SyncOperation.delete
@@ -117,17 +117,17 @@ final class DriftRemindersRepository implements RemindersRepository {
       }
     });
     _syncCoordinator.notifyAfterCommit();
-    await _onChanged();
   }
 
-  Reminder _fromRow(ReminderRow row) => Reminder(
+  Item _fromRow(ItemRow row) => Item(
     id: row.id,
     ownerId: row.ownerId,
-    itemId: row.itemId,
-    remindAt: row.remindAt.toUtc(),
-    completedAt: row.completedAt?.toUtc(),
+    title: row.title,
+    summary: row.summary,
+    status: row.status,
     createdAt: row.createdAt.toUtc(),
     updatedAt: row.updatedAt.toUtc(),
+    resolvedAt: row.resolvedAt?.toUtc(),
     deletedAt: row.deletedAt?.toUtc(),
     syncStatus: row.syncStatus,
     lastSyncedAt: row.lastSyncedAt?.toUtc(),

@@ -6,8 +6,8 @@ abstract interface class RemoteInvalidationSubscription {
 }
 
 abstract interface class KiptoRemoteDataSource {
-  Future<List<RemoteSavedItem>> upsertSavedItems(List<RemoteSavedItem> items);
-  Future<List<RemoteSavedItem>> fetchSavedItemsChangedSince({
+  Future<List<RemoteItem>> upsertItems(List<RemoteItem> items);
+  Future<List<RemoteItem>> fetchItemsChangedSince({
     DateTime? cursor,
     required int offset,
     required int limit,

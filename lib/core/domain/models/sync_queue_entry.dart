@@ -1,4 +1,4 @@
-import 'package:kipto/core/domain/enums/saved_item_enums.dart';
+import 'package:kipto/core/domain/enums/item_enums.dart';
 
 final class SyncQueueEntry {
   const SyncQueueEntry({

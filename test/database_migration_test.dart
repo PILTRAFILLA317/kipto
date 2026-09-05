@@ -3,138 +3,88 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kipto/core/database/app_database.dart';
-import 'package:kipto/core/repositories/drift_saved_items_repository.dart';
-import 'package:kipto/core/repositories/drift_reminders_repository.dart';
-
-import 'test_helpers.dart';
 
 void main() {
-  test('v1 through v6 preserves SavedItems and creates new state', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'kipto-migration-test-',
-    );
-    final file = File('${directory.path}/kipto.sqlite');
+  test('v6 Screenshot Inbox databases reset deterministically to Life Admin', () async {
+    final directory = await Directory.systemTemp.createTemp('kipto-v7-');
     addTearDown(() => directory.delete(recursive: true));
-    final now = DateTime.utc(2026, 8, 29, 12);
-
-    final setup = AppDatabase(NativeDatabase(file));
-    await DriftSavedItemsRepository(setup)
-        .create(testSavedItem(id: 'phase-one-item', now: now));
-    await setup.customStatement('DROP TABLE screenshot_import_states');
-    await setup.customStatement(
-      'DROP INDEX saved_items_local_asset_id_unique_idx',
-    );
-    await setup.customStatement('DROP TABLE analysis_queue');
-    await setup.customStatement('DROP TABLE preview_transfer_jobs');
-    await setup.customStatement('PRAGMA user_version = 1');
-    await setup.close();
-
-    final migrated = AppDatabase(NativeDatabase(file));
-    addTearDown(migrated.close);
-    final item = await migrated.savedItemsDao.findById('phase-one-item');
-    final state = await migrated.screenshotImportStateDao.readLocal();
-    final indexes = await migrated
-        .customSelect(
-          "SELECT name FROM sqlite_master WHERE type = 'index' "
-          "AND name = 'saved_items_local_asset_id_unique_idx'",
-        )
-        .get();
-
-    expect(item?.id, 'phase-one-item');
-    expect(state, isNull);
-    expect(indexes, hasLength(1));
-    expect(migrated.schemaVersion, 6);
-    expect(
-      await migrated
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = 'cloud_sync_states'",
-          )
-          .get(),
-      hasLength(1),
-    );
-    expect(
-      await migrated
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = 'analysis_queue'",
-          )
-          .get(),
-      hasLength(1),
-    );
-    expect(
-      await migrated
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = 'notification_mappings'",
-          )
-          .get(),
-      hasLength(1),
-    );
-    expect(
-      await migrated
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = 'preview_transfer_jobs'",
-          )
-          .get(),
-      hasLength(1),
-    );
-  });
-
-  test('v2 to v6 preserves screenshot fields and reminders', () async {
-    final directory = await Directory.systemTemp.createTemp(
-      'kipto-v3-migration-test-',
-    );
     final file = File('${directory.path}/kipto.sqlite');
-    addTearDown(() => directory.delete(recursive: true));
-    final now = DateTime.utc(2026, 8, 29, 12);
-
     final setup = AppDatabase(NativeDatabase(file));
-    final item = testSavedItem(id: 'phase-two-item', now: now);
-    await DriftSavedItemsRepository(setup).create(item);
-    await DriftRemindersRepository(
-      setup,
-      idGenerator: () => 'phase-two-reminder',
-    ).create(savedItemId: item.id, remindAt: now.add(const Duration(days: 1)));
-    await setup.customStatement(
-      "UPDATE saved_items SET local_asset_id = 'photo-asset', "
-      'original_available = 1 WHERE id = ?',
-      ['phase-two-item'],
-    );
-    await setup.customStatement(
-      'ALTER TABLE saved_items DROP COLUMN remote_server_updated_at',
-    );
-    await setup.customStatement(
-      'ALTER TABLE reminders DROP COLUMN last_synced_at',
-    );
-    await setup.customStatement(
-      'ALTER TABLE reminders DROP COLUMN remote_server_updated_at',
-    );
+    await setup.customStatement('DROP TABLE notification_mappings');
+    await setup.customStatement('DROP TABLE reminders');
+    await setup.customStatement('DROP TABLE items');
+    await setup.customStatement('DROP TABLE sync_queue');
     await setup.customStatement('DROP TABLE cloud_sync_states');
-    await setup.customStatement('DROP TABLE analysis_queue');
-    await setup.customStatement('DROP TABLE preview_transfer_jobs');
-    await setup.customStatement('PRAGMA user_version = 2');
+    await setup.customStatement(
+      'CREATE TABLE saved_items (id TEXT PRIMARY KEY, title TEXT NOT NULL)',
+    );
+    await setup.customStatement(
+      'CREATE TABLE reminders (id TEXT PRIMARY KEY, saved_item_id TEXT NOT NULL)',
+    );
+    await setup.customStatement(
+      'CREATE TABLE screenshot_import_states (id TEXT PRIMARY KEY)',
+    );
+    await setup.customStatement(
+      'CREATE TABLE analysis_queue (id TEXT PRIMARY KEY)',
+    );
+    await setup.customStatement(
+      'CREATE TABLE preview_transfer_jobs (id TEXT PRIMARY KEY)',
+    );
+    await setup.customStatement(
+      'CREATE TABLE sync_queue (id TEXT PRIMARY KEY)',
+    );
+    await setup.customStatement(
+      'CREATE TABLE cloud_sync_states (id TEXT PRIMARY KEY)',
+    );
+    await setup.customStatement(
+      "INSERT INTO saved_items (id, title) VALUES ('legacy', 'Old screenshot')",
+    );
+    await setup.customStatement('PRAGMA user_version = 6');
     await setup.close();
 
     final migrated = AppDatabase(NativeDatabase(file));
     addTearDown(migrated.close);
-    final preserved = await migrated.savedItemsDao.findById('phase-two-item');
-    expect(preserved?.localAssetId, 'photo-asset');
-    expect(preserved?.originalAvailable, isTrue);
-    expect(preserved?.remoteServerUpdatedAt, isNull);
+    final tables =
+        (await migrated
+                .customSelect(
+                  "SELECT name FROM sqlite_master WHERE type = 'table'",
+                )
+                .get())
+            .map((row) => row.read<String>('name'))
+            .toSet();
+
+    expect(migrated.schemaVersion, 7);
     expect(
-      (await migrated.remindersDao.findById('phase-two-reminder'))?.savedItemId,
-      'phase-two-item',
+      tables,
+      containsAll({
+        'items',
+        'reminders',
+        'sync_queue',
+        'cloud_sync_states',
+        'notification_mappings',
+      }),
     );
-    expect(migrated.schemaVersion, 6);
     expect(
-      await migrated.customSelect('SELECT * FROM analysis_queue').get(),
-      isEmpty,
+      tables,
+      isNot(
+        containsAll({
+          'saved_items',
+          'screenshot_import_states',
+          'analysis_queue',
+          'preview_transfer_jobs',
+        }),
+      ),
     );
-    expect(
-      await migrated.customSelect('SELECT * FROM preview_transfer_jobs').get(),
-      isEmpty,
+    await migrated.customStatement(
+      "INSERT INTO items (id, title, status, created_at, updated_at, sync_status) "
+      "VALUES ('item', 'New item', 'active', '2026-09-03T00:00:00.000Z', "
+      "'2026-09-03T00:00:00.000Z', 'localOnly')",
     );
+    await migrated.customStatement(
+      "INSERT INTO reminders (id, item_id, remind_at, created_at, updated_at, sync_status) "
+      "VALUES ('reminder', 'item', '2026-09-04T00:00:00.000Z', "
+      "'2026-09-03T00:00:00.000Z', '2026-09-03T00:00:00.000Z', 'localOnly')",
+    );
+    expect(await migrated.remindersDao.findById('reminder'), isNotNull);
   });
 }

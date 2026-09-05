@@ -7,26 +7,27 @@ part 'sync_queue_dao.g.dart';
 @DriftAccessor(tables: [SyncQueue])
 class SyncQueueDao extends DatabaseAccessor<AppDatabase>
     with _$SyncQueueDaoMixin {
-  SyncQueueDao(super.attachedDatabase);
-
-  Future<void> enqueue(SyncQueueCompanion entry) =>
-      into(syncQueue).insert(entry);
-
-  Stream<List<SyncQueueRow>> watchPending() => (select(
-    syncQueue,
-  )..orderBy([(entry) => OrderingTerm.asc(entry.createdAt)])).watch();
+  SyncQueueDao(super.db);
 
   Future<List<SyncQueueRow>> pending() => (select(
     syncQueue,
-  )..orderBy([(entry) => OrderingTerm.asc(entry.createdAt)])).get();
+  )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
 
-  Future<SyncQueueRow?> findById(String id) => (select(
-    syncQueue,
-  )..where((entry) => entry.id.equals(id))).getSingleOrNull();
+  /// Keeps one pending write per entity. The row itself is the durable record;
+  /// the entity row carries the complete latest state that will be upserted.
+  Future<void> enqueue(SyncQueueCompanion entry) async {
+    await (delete(syncQueue)..where(
+          (row) =>
+              row.entityType.equalsValue(entry.entityType.value) &
+              row.entityId.equals(entry.entityId.value),
+        ))
+        .go();
+    await into(syncQueue).insert(entry);
+  }
 
-  Future<int> updateFields(String id, SyncQueueCompanion fields) =>
-      (update(syncQueue)..where((entry) => entry.id.equals(id))).write(fields);
+  Future<void> remove(String id) =>
+      (delete(syncQueue)..where((row) => row.id.equals(id))).go();
 
-  Future<int> remove(String id) =>
-      (delete(syncQueue)..where((entry) => entry.id.equals(id))).go();
+  Future<void> updateFields(String id, SyncQueueCompanion entry) =>
+      (update(syncQueue)..where((row) => row.id.equals(id))).write(entry);
 }

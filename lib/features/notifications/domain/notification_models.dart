@@ -9,31 +9,30 @@ enum NotificationPermissionStatus {
 
 final class ReminderNotificationPayload {
   const ReminderNotificationPayload({
-    required this.savedItemId,
+    required this.itemId,
     required this.reminderId,
   });
 
-  final String savedItemId;
+  final String itemId;
   final String reminderId;
 
-  String encode() =>
-      jsonEncode({'savedItemId': savedItemId, 'reminderId': reminderId});
+  String encode() => jsonEncode({'itemId': itemId, 'reminderId': reminderId});
 
   static ReminderNotificationPayload? tryParse(String? value) {
     if (value == null || value.length > 1000) return null;
     try {
       final json = jsonDecode(value);
       if (json is! Map) return null;
-      final savedItemId = json['savedItemId'];
+      final itemId = json['itemId'];
       final reminderId = json['reminderId'];
-      if (savedItemId is! String ||
+      if (itemId is! String ||
           reminderId is! String ||
-          savedItemId.isEmpty ||
+          itemId.isEmpty ||
           reminderId.isEmpty) {
         return null;
       }
       return ReminderNotificationPayload(
-        savedItemId: savedItemId,
+        itemId: itemId,
         reminderId: reminderId,
       );
     } on Object {
@@ -49,7 +48,6 @@ final class NotificationMapping {
     required this.scheduledFor,
     required this.timeZone,
   });
-
   final String reminderId;
   final int notificationId;
   final DateTime scheduledFor;
@@ -59,13 +57,12 @@ final class NotificationMapping {
 final class ReminderScheduleCandidate {
   const ReminderScheduleCandidate({
     required this.reminderId,
-    required this.savedItemId,
+    required this.itemId,
     required this.remindAt,
-    required this.savedItemTitle,
+    required this.itemTitle,
   });
-
   final String reminderId;
-  final String savedItemId;
+  final String itemId;
   final DateTime remindAt;
-  final String savedItemTitle;
+  final String itemTitle;
 }

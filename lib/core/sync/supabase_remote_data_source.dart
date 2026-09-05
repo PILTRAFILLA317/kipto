@@ -9,24 +9,22 @@ final class SupabaseRemoteDataSource implements KiptoRemoteDataSource {
   final SupabaseClient _client;
 
   @override
-  Future<List<RemoteSavedItem>> upsertSavedItems(
-    List<RemoteSavedItem> items,
-  ) async {
+  Future<List<RemoteItem>> upsertItems(List<RemoteItem> items) async {
     if (items.isEmpty) return const [];
     final rows = await _client
-        .from('saved_items')
+        .from('items')
         .upsert(items.map((item) => item.toJson()).toList())
         .select();
-    return rows.map(RemoteSavedItem.fromJson).toList(growable: false);
+    return rows.map(RemoteItem.fromJson).toList(growable: false);
   }
 
   @override
-  Future<List<RemoteSavedItem>> fetchSavedItemsChangedSince({
+  Future<List<RemoteItem>> fetchItemsChangedSince({
     DateTime? cursor,
     required int offset,
     required int limit,
   }) async {
-    var query = _client.from('saved_items').select();
+    var query = _client.from('items').select();
     if (cursor != null) {
       query = query.gte(
         'server_updated_at',
@@ -37,7 +35,7 @@ final class SupabaseRemoteDataSource implements KiptoRemoteDataSource {
         .order('server_updated_at')
         .order('id')
         .range(offset, offset + limit - 1);
-    return rows.map(RemoteSavedItem.fromJson).toList(growable: false);
+    return rows.map(RemoteItem.fromJson).toList(growable: false);
   }
 
   @override
@@ -47,7 +45,7 @@ final class SupabaseRemoteDataSource implements KiptoRemoteDataSource {
     if (reminders.isEmpty) return const [];
     final rows = await _client
         .from('reminders')
-        .upsert(reminders.map((item) => item.toJson()).toList())
+        .upsert(reminders.map((reminder) => reminder.toJson()).toList())
         .select();
     return rows.map(RemoteReminder.fromJson).toList(growable: false);
   }
@@ -73,9 +71,8 @@ final class SupabaseRemoteDataSource implements KiptoRemoteDataSource {
   }
 
   @override
-  Future<void> upsertDevice(RemoteDevice device) async {
-    await _client.from('devices').upsert(device.toJson());
-  }
+  Future<void> upsertDevice(RemoteDevice device) =>
+      _client.from('devices').upsert(device.toJson());
 
   @override
   Future<RemoteInvalidationSubscription> subscribeToInvalidations(
@@ -87,31 +84,25 @@ final class SupabaseRemoteDataSource implements KiptoRemoteDataSource {
       opts: const RealtimeChannelConfig(private: true),
     )..onBroadcast(event: 'sync', callback: (_) => controller.add(null));
     channel.subscribe();
-    return _SupabaseInvalidationSubscription(
-      client: _client,
-      channel: channel,
-      controller: controller,
-    );
+    return _SupabaseInvalidationSubscription(_client, channel, controller);
   }
 }
 
 final class _SupabaseInvalidationSubscription
     implements RemoteInvalidationSubscription {
-  _SupabaseInvalidationSubscription({
-    required this.client,
-    required this.channel,
-    required this.controller,
-  });
-  final SupabaseClient client;
-  final RealtimeChannel channel;
-  final StreamController<void> controller;
-
+  const _SupabaseInvalidationSubscription(
+    this._client,
+    this._channel,
+    this._controller,
+  );
+  final SupabaseClient _client;
+  final RealtimeChannel _channel;
+  final StreamController<void> _controller;
   @override
-  Stream<void> get invalidations => controller.stream;
-
+  Stream<void> get invalidations => _controller.stream;
   @override
   Future<void> dispose() async {
-    await client.removeChannel(channel);
-    await controller.close();
+    await _client.removeChannel(_channel);
+    await _controller.close();
   }
 }
