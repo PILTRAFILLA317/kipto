@@ -50,3 +50,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local signing capability configuration
+ios/Shared/Share.local.xcconfig
+
+# Distribution credentials
+/android/key.properties
+*.jks
+*.keystore

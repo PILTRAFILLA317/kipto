@@ -1,0 +1,327 @@
+{
+  "@@locale": "en",
+  "pending": "Pending",
+  "archive": "Archive",
+  "add": "Add",
+  "search": "Search",
+  "settings": "Settings",
+  "close": "Close",
+  "cancel": "Cancel",
+  "save": "Save",
+  "retry": "Try again",
+  "edit": "Edit",
+  "delete": "Delete",
+  "resolve": "Resolve",
+  "reopen": "Reopen",
+  "all": "All",
+  "saved": "Saved",
+  "resolved": "Resolved",
+  "title": "Title",
+  "note": "Note",
+  "outOfYourHead": "Out of your head.",
+  "emptyPendingTitle": "A little more headspace.",
+  "emptyPendingBody": "Save a document or write something you want to remember. It starts here.",
+  "emptyArchiveTitle": "A place for what matters.",
+  "emptyArchiveBody": "Your saved documents and resolved matters will be here, ready when you need them.",
+  "image": "Image",
+  "document": "Document",
+  "writeOrPaste": "Write or paste",
+  "shareHint": "You can also send a photo, PDF or text to Kipto using Share in another app.",
+  "notAvailableYet": "Available in the next implementation phase",
+  "localError": "We could not open your saved items. Try again.",
+  "noResults": "No matches",
+  "searchHint": "Search your matters",
+  "withoutDate": "No date",
+  "localSaved": "Saved on this device",
+  "notAnalyzed": "Not analyzed",
+  "review": "Review",
+  "toReview": "To review",
+  "upcoming": "Coming up",
+  "appearance": "Appearance",
+  "system": "System",
+  "light": "Light",
+  "dark": "Dark",
+  "reduceMotion": "Reduce motion",
+  "haptics": "Haptic feedback",
+  "notifications": "Notifications",
+  "account": "Account",
+  "syncNow": "Sync now",
+  "cloudUnavailable": "Cloud sync is not configured. Your items stay on this device.",
+  "preview": "Design preview",
+  "previewTitle": "Review your policy renewal",
+  "previewDate": "September 16 · date to confirm",
+  "previewSummary": "Check the notice period in the original document.",
+  "previewSecondTitle": "Dentist appointment",
+  "previewSecondDate": "September 18 · 09:30",
+  "previewError": "The document could not be read. The original is still saved.",
+  "activeCount": "{count, plural, =0{No active matters} =1{1 active matter} other{{count} active matters}}",
+  "@activeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saving": "Saving…",
+  "confirmingAction": "Confirming…",
+  "calendarPermissionDenied": "Calendar access was not authorised.",
+  "evidenceDetails": "Evidence for this fact",
+  "captureTooLarge": "The limit is 20 MiB per file and 60,000 characters per note.",
+  "captureUnsupported": "Choose a JPEG, PNG, WebP, HEIC or PDF file.",
+  "captureUnreadable": "This file cannot be read. Check that it is complete and not password protected.",
+  "captureFailed": "Could not save this source. Your existing items are safe. Try again.",
+  "captureAccountChanged": "Your account changed. Reopen Add before saving to this library.",
+  "sourceUnavailable": "The original is not available on this device.",
+  "openOriginal": "Open original",
+  "source": "Source",
+  "syncConsent": "Sync my matters",
+  "syncConsentBody": "Includes titles, notes, source text and extracted information in your private cloud library. Original files need separate backup consent.",
+  "cloud": "Cloud and privacy",
+  "protectLibrary": "Protect this library",
+  "protectLibraryBody": "Connect Apple or Google to recover your matters on another device.",
+  "getStarted": "Continue with a private account",
+  "restoreApple": "Restore with Apple",
+  "restoreGoogle": "Restore with Google",
+  "signOut": "Sign out",
+  "signOutBody": "Removes this library from this device. Cloud data remains.",
+  "operationFailed": "This action could not be completed. Try again.",
+  "notificationEnabled": "Local reminders are enabled",
+  "notificationDisabled": "Notifications are disabled",
+  "notificationAsk": "Enable when you create a reminder",
+  "notificationUnavailable": "Not available on this device",
+  "sourceTextHint": "Write or paste what you want to keep",
+  "fieldRequired": "Enter a title and some text.",
+  "recoveryFailed": "Some pending sources could not be recovered. Their files have been kept.",
+  "pdfLimit": "Only up to 10 pages can be analyzed. Keep this original or provide a shorter PDF.",
+  "sharedReady": "{count, plural, =1{1 shared source is ready} other{{count} shared sources are ready}}",
+  "sharedAsMatters": "{count, plural, =1{It will be saved as one matter.} other{They will be saved as {count} separate matters.}}",
+  "@sharedReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@sharedAsMatters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "discardCapture": "Discard capture",
+  "discardCaptureBody": "This pending delivery will be deleted. Matters already saved will be kept.",
+  "detectedDate": "Detected date",
+  "detectedFact": "Detected fact",
+  "correctedFact": "Corrected fact",
+  "originalValue": "Original value",
+  "checkOriginal": "Check this fact against the original before using it.",
+  "proposedReminder": "Proposed reminder",
+  "calendarMonths": "{count, plural, =1{1 calendar month} other{{count} calendar months}}",
+  "calendarDays": "{count, plural, =1{1 day} other{{count} days}}",
+  "pageNumber": "Page {count}",
+  "@calendarMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@pageNumber": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "analyze": "Analyze source",
+  "analyzeAgain": "Analyze again",
+  "analysisConsentTitle": "Analyze with AI",
+  "analysisConsentBody": "A prepared copy of this source will be sent to Supabase and OpenAI to extract facts and suggestions. An anonymous session will be created if needed. Your original stays here. This does not enable sync or backup. You can disable this in Settings.",
+  "analysisConsent": "Allow AI analysis",
+  "analysisConsentShort": "Send only sources you choose. Analysis never creates reminders automatically.",
+  "analysisQueued": "Saved · awaiting analysis",
+  "analysisRunning": "Analyzing source…",
+  "analysisRetry": "Waiting to retry",
+  "analysisReady": "Analysis ready · review suggestions",
+  "analysisPaused": "Analysis is disabled in Settings.",
+  "analysisCoverage": "Check coverage and evidence before confirming an action.",
+  "analysisPartial": "Partial analysis: some pages have not been reviewed.",
+  "analysisTooLarge": "This source exceeds the analysis limit. The original is saved; import a smaller copy.",
+  "analysisTooManyPages": "This PDF has more than 10 pages. Import a copy containing the relevant pages for analysis. Your original is kept.",
+  "analysisUnreadable": "This source cannot be read. Enter details manually or import another copy.",
+  "analysisNetwork": "The connection could not be completed. Your source is still saved.",
+  "analysisQuota": "An analysis limit has been reached. Existing documents and reminders remain available.",
+  "analysisSession": "There is no valid session for analysis. Check your account in Settings.",
+  "analysisConfiguration": "Analysis is unavailable. You can still save sources and enter details manually.",
+  "analysisInvalid": "The result could not be validated. No suggestions or reminders were created.",
+  "analysisIndeterminate": "We cannot confirm whether the provider finished analysis. This request will not be repeated automatically.",
+  "analysisStale": "This result no longer matches the current account or source.",
+  "analysisNewRequestTitle": "Start another analysis?",
+  "analysisNewRequestBody": "A new request may use another analysis from your quota. Corrected facts and accepted actions will be kept.",
+  "analysisContextOmitted": "Accompanying text is saved with the matter; this analysis reviews only the file.",
+  "analysisUncertainty": "Uncertain fact",
+  "analysisReviewTitle": "Suggested title",
+  "analysisNoActions": "No actions were suggested. Saving without a date is still valid.",
+  "reviewAction": "Review suggestion",
+  "remindAction": "Remind me",
+  "eventAction": "Add to calendar",
+  "keepAction": "Just save",
+  "confirmAction": "Confirm",
+  "chooseDate": "Choose date",
+  "chooseTime": "Choose time",
+  "timeZone": "Time zone",
+  "startDate": "Start date",
+  "endDate": "End date",
+  "startTime": "Start time",
+  "endTime": "End time",
+  "allDay": "All day",
+  "endDateExclusive": "The end date is not included.",
+  "locationOptional": "Location (optional)",
+  "confirmTemporal": "Check date, time and zone. A detected date does not create a reminder on its own.",
+  "invalidTemporal": "Complete the date and time, using a valid zone and interval.",
+  "nonexistentTime": "This local time does not exist due to a clock change. Choose another time.",
+  "ambiguousTime": "This time occurs twice. Choose the correct occurrence.",
+  "sameDate": "That day",
+  "dayBefore": "One day before",
+  "weekBefore": "One week before",
+  "monthBefore": "One calendar month before",
+  "monthClamped": "Adjusted to the last day of the month.",
+  "reminderScheduled": "Reminder scheduled on this device.",
+  "reminderNotScheduled": "Reminder saved, but not scheduled on this device. Check notification permission or capacity.",
+  "calendarSaved": "Event saved to your calendar.",
+  "calendarOpened": "Calendar opened. Kipto cannot confirm whether you saved the event.",
+  "calendarCancelled": "No event was saved.",
+  "calendarUnavailable": "Calendar is unavailable on this device.",
+  "keepExplained": "Keep the document without creating dates. If no future reminders exist, other suggestions will be dismissed and the matter will move to Archive.",
+  "keptResult": "Document kept. Existing reminders have not been cancelled.",
+  "dismissProposal": "Dismiss suggestion",
+  "proposedAction": "Awaiting confirmation",
+  "acceptedAction": "Confirmed",
+  "reopenCalendar": "Reopen calendar",
+  "reopenCalendarBody": "The event may already exist. Check your calendar before creating another copy.",
+  "resolveMatter": "Resolve matter",
+  "reopenMatter": "Return to Pending",
+  "archiveMatter": "Archive matter",
+  "archiveReminderBody": "Archiving will cancel this matter’s future reminders. Calendar events will remain unchanged.",
+  "resolveReminderBody": "Resolving will cancel pending reminders and keep the document in Archive. Undo only reschedules valid future reminders.",
+  "editMatter": "Edit title and summary",
+  "matterTitle": "Title",
+  "matterSummary": "Summary",
+  "actionTitle": "Action title",
+  "savedChange": "Changes saved",
+  "lifecycleFailed": "The operation did not complete. Check saved state and notification permissions before retrying.",
+  "undo": "Undo",
+  "viewEvidence": "View source for this fact",
+  "pendingReminder": "Pending reminder",
+  "completedReminder": "Cancelled or completed reminder",
+  "cancelReminder": "Cancel reminder",
+  "cancelReminderBody": "This reminder will be cancelled. The matter will stay in Pending.",
+  "noReminderCreated": "Saving does not create a reminder.",
+  "factValue": "Value",
+  "rawDate": "Date as written",
+  "currency": "Currency (optional)",
+  "durationCount": "Count",
+  "durationUnit": "Unit",
+  "calendarDayUnit": "Calendar days",
+  "calendarMonthUnit": "Calendar months",
+  "clearDate": "Unconfirmed date",
+  "clearTime": "Unconfirmed time",
+  "factCorrectionBody": "Corrections preserve the original extraction and evidence. Existing confirmed reminders remain unchanged.",
+  "reviewGroup": "Needs review",
+  "datedGroup": "With a date",
+  "otherGroup": "Other matters",
+  "sourceLocal": "Original on this device",
+  "sourceMissing": "Original unavailable on this device",
+  "reimportSource": "Import another copy",
+  "searchResultCount": "Results",
+  "backupConsent": "Original file backup",
+  "backupConsentBody": "With Kipto Pro, upload originals to your private backup (up to 1 GiB). Requires metadata sync. Turning this off keeps existing backups.",
+  "backupPending": "{count} files awaiting transfer",
+  "@backupPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupReady": "Backup confirmed",
+  "backupTransfer": "{sent} of {total} bytes transferred; awaiting confirmation",
+  "@backupTransfer": {
+    "placeholders": {
+      "sent": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProRequired": "New backups require Kipto Pro. Your original is still on this device.",
+  "downloadBackup": "Download backup, if available",
+  "signOutWarning": "This device’s library will be removed. There are {changes} matters with pending changes and {originals} originals without a backup confirmed here. You can cancel and export them before signing out.",
+  "@signOutWarning": {
+    "placeholders": {
+      "changes": {
+        "type": "int"
+      },
+      "originals": {
+        "type": "int"
+      }
+    }
+  },
+  "proHeadline": "More help.\nAll at hand.",
+  "proBody": "More analyses and a private backup of your originals.",
+  "proAnalysis": "100 analyses per month",
+  "proBackup": "Up to 1 GiB of originals",
+  "proVerified": "Kipto Pro verified by the server",
+  "freePlan": "Free plan · 5 analyses per month",
+  "billingUnavailable": "Purchases are not available yet. You can still save items and create manual reminders.",
+  "paymentPending": "The store is awaiting payment approval.",
+  "purchaseVerificationPending": "Purchase received by the store. Your limits will increase when the server verifies your entitlement.",
+  "monthlyPlan": "Monthly",
+  "annualPlan": "Annual",
+  "subscriptionTerms": "Automatically renews for the period shown. Review the final price and terms in the store before confirming. Saving, viewing and existing reminders remain available if you cancel.",
+  "restorePurchases": "Restore purchases",
+  "restorePurchaseBody": "Purchases checked. Restoring purchases does not restore documents from another account.",
+  "manageSubscription": "Manage subscription",
+  "noSubscription": "There is no active subscription to manage.",
+  "refreshStatus": "Refresh status",
+  "privacy": "Privacy",
+  "terms": "Terms",
+  "exportData": "Export",
+  "exportBody": "Prepare a ZIP with the selected data and available originals. If files are missing, cancel and download them from their details before exporting.",
+  "exportComplete": "All selected originals are included.",
+  "exportMissing": "{count} originals are missing. The manifest identifies them.",
+  "saveExport": "Save or share ZIP",
+  "deleteMatter": "Delete matter",
+  "deleteMatterBody": "The matter and its sources will be deleted, and its reminders cancelled. Remote file deletion may remain pending until connectivity returns. This cannot be undone.",
+  "deletePending": "Deletion requested. Some steps remain pending; check transfers in Settings.",
+  "@exportMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccount": "Delete account",
+  "deleteAccountBody": "Your account, Kipto data and original file backups will be deleted. Export anything you want to keep first. This cannot be undone. Store subscriptions are not automatically cancelled: you can manage yours in Kipto Pro before continuing, but cancellation is not required to delete your account.",
+  "accountDeleted": "Account deleted",
+  "accountDeletionPending": "Deletion in progress",
+  "accountDeletionWait": "New transfers are blocked. If an upload was in progress, deletion will wait up to five minutes to avoid leaving files behind. Retry while connected; the request is kept if you close the app.",
+  "notificationsThisDevice": "Reminders on this device",
+  "notificationsDevicesBody": "If reminders are enabled on two devices, both may notify you. System permission must also be enabled.",
+  "notificationTitles": "Include titles in notifications",
+  "notificationTitlesBody": "By default, notifications only say an item needs your attention. Enable this to show the title, including on the lock screen.",
+  "returnToSource": "Return to source app",
+  "deleteSource": "Delete source",
+  "deleteSourceBody": "This original and its extracted data will be deleted, and related reminders cancelled. The matter is kept. This cannot be undone.",
+  "loading": "Loading…"
+}

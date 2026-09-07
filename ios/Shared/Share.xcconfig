@@ -1,0 +1,4 @@
+// Set the approved App Group in the untracked Share.local.xcconfig.
+// Both targets must have matching provisioning capabilities.
+PRODUCT_NAME = $(TARGET_NAME)
+#include? "Share.local.xcconfig"

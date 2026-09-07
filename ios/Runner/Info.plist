@@ -14,6 +14,14 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>kipto</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -25,20 +33,18 @@
 			</array>
 		</dict>
 	</array>
-	<key>CFBundleName</key>
-	<string>kipto</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>KiptoAppGroup</key>
+	<string>$(KIPTO_APP_GROUP)</string>
+	<key>KiptoKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)$(KIPTO_KEYCHAIN_GROUP)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Kipto uses Calendar access on iOS 15 and 16 only to present the system event editor you requested.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Kipto saves only the image you choose using the system picker.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

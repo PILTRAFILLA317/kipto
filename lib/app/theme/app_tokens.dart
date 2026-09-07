@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  static const backgroundDeep = Color(0xFF0C0B0E);
-  static const background = Color(0xFF111013);
-  static const surface = Color(0xFF181519);
-  static const surfaceElevated = Color(0xFF211C21);
-  static const surfaceSoft = Color(0xFF292229);
+  static const backgroundDeep = Color(0xFF0F1012);
+  static const background = Color(0xFF0F1012);
+  static const surface = Color(0xFF19181D);
+  static const surfaceElevated = Color(0xFF242129);
+  static const surfaceSoft = Color(0xFF302A34);
 
-  static const primaryMauve = Color(0xFFC091A7);
-  static const primaryRose = Color(0xFFB66F91);
-  static const primaryDeep = Color(0xFF71445E);
-  static const accentLime = Color(0xFFDAF264);
+  static const primaryMauve = Color(0xFFD5A5BB);
+  static const primaryRose = Color(0xFFB667A4);
+  static const primaryDeep = Color(0xFF56384F);
+  static const amber = Color(0xFFC49667);
+  static const heroGradient = [
+    Color(0xFF8E587E),
+    Color(0xFFAA6898),
+    Color(0xFF583D52),
+    Color(0xFF1A181E),
+  ];
+  static const accentLime = Color(0xFFD9E887);
 
-  static const textPrimary = Color(0xFFF8F5F7);
-  static const textSecondary = Color(0xFFB7ADB4);
-  static const textTertiary = Color(0xFF827981);
-  static const error = Color(0xFFE6A2A8);
+  static const textPrimary = Color(0xFFF7F4F8);
+  static const textSecondary = Color(0xFFC4BCC9);
+  static const textTertiary = Color(0xFFA69AAA);
+  static const error = Color(0xFFF49BA9);
 
   static const lightBackground = Color(0xFFF4EFF1);
   static const lightSurface = Color(0xFFFFFAFC);
@@ -45,8 +52,8 @@ abstract final class AppRadii {
   static const xs = 10.0;
   static const sm = 14.0;
   static const md = 18.0;
-  static const lg = 22.0;
-  static const xl = 26.0;
+  static const lg = 28.0;
+  static const xl = 32.0;
   static const xxl = 32.0;
   static const pill = 999.0;
 }
@@ -77,7 +84,7 @@ abstract final class AppShadows {
 }
 
 abstract final class AppLayout {
-  static const contentMaxWidth = 760.0;
+  static const contentMaxWidth = 560.0;
   static const screenHorizontal = AppSpacing.ml;
   static const navClearance = 112.0;
 

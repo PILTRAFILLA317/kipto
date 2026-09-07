@@ -1,0 +1,15 @@
+"share.title" = "Guárdalo para después";
+"share.body" = "Una copia en Kipto, lista para revisar cuando quieras.";
+"share.copying" = "Copiando al dispositivo…";
+"share.multiple" = "Se creará un asunto por archivo.";
+"share.optionalTitle" = "Título opcional";
+"share.save" = "Guardar en Kipto";
+"share.cancel" = "Cancelar";
+"share.saved" = "Guardado para revisar en Kipto. No se ha programado ningún aviso.";
+"share.done" = "Volver";
+"share.setup" = "La extensión necesita configurar el App Group. Abre Kipto o consulta la configuración del proyecto.";
+"share.failed" = "No se ha podido completar. La copia disponible se conserva para revisar en Kipto.";
+"share.analyze" = "Analizar ahora";
+"share.analyzing" = "Analizando…";
+"share.analysisPending" = "No se ha completado el análisis. Pulsa Guardar para revisar en Kipto.";
+"share.reviewInApp" = "Confirma avisos y eventos en Kipto. Guardar no programa ningún aviso.";

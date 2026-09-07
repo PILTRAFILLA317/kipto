@@ -1,33 +1,44 @@
-# Kipto – Life Admin
+# Kipto — Life Admin
 
-Kipto is being rebuilt as a local-first Life Admin: a place to send something,
-forget about it, and later be reminded of what matters.
+Kipto conserva una fuente, ayuda a revisar lo importante y permite elegir entre
+Recordar, Evento o Guardar. Flutter/Riverpod, Drift, Supabase y RevenueCat.
 
-## Implemented now
+La implementación de las fases 01–14 está en este checkout, con pruebas automatizadas
+y backend aplicado. **El lanzamiento está pendiente de configuración comercial y pruebas
+nativas**: no se ha realizado un build, archive ni publicación.
 
-- Minimal Inbox foundation with no automatic capture or scanning.
-- Neutral `Item` and `Reminder` lifecycle in local Drift storage.
-- Drift remains the application source of truth; UI reads through Riverpod and
-  repositories only.
-- Optional Supabase authentication, owner-scoped metadata sync, foreground
-  retry, device identity, soft deletes, pull/restore, and private Realtime
-  invalidation.
-- Anonymous users can protect the same library with Apple or Google; existing
-  users can restore it through the PKCE callback flow.
-- Device-local reminder notification reconciliation and a retained native
-  Add-to-Calendar adapter.
+- Importación explícita de imagen, PDF y texto; share Android y target ShareExtension iOS.
+- Original duradero antes de IA; hechos/evidencias, correcciones y propuestas por confirmar.
+- Pendientes, Archivo, búsqueda local, acciones y reconciliación de avisos por dispositivo.
+- Sync de metadatos y backup privado con consentimientos separados y control de propietario.
+- Plan Pro con precios de tienda, restore/manage y acceso verificado por backend.
+- Exportación ZIP, borrado de fuentes/asuntos/cuenta y recuperación de operaciones interrumpidas.
 
-## Planned, not implemented
+Sin configuración externa se informa indisponibilidad; no hay IA ni compras ficticias.
+El código no implementa Family, email, voz ni escaneo global de fototeca.
 
-Share Sheet input, universal import, PDFs, source handling, Life Admin
-analysis, facts, final product screens, billing, family, email, and voice.
+## Documentación
 
-## Local setup
+- [Estado y evidencia por fase](docs/implementation-status.md)
+- [Setup manual](docs/manual-setup.md)
+- [Checklist y limitaciones de lanzamiento](docs/release-checklist.md)
+- [Arquitectura](docs/architecture-decisions.md)
+- [Inventario de datos/retención](docs/privacy-data-inventory.md)
+- [Textos y capturas para revisión](docs/store-copy.md)
 
-1. Copy `config/dev.example.json` to ignored `config/dev.json` if cloud sync is
-   required. Use only the Supabase URL and publishable key.
-2. Run `flutter pub get`.
-3. Run `flutter run`.
+## Verificación local
 
-Without valid cloud configuration, Kipto remains fully local. It never places a
-service-role key or an OpenAI key in Flutter.
+```sh
+rtk proxy flutter pub get
+rtk proxy flutter analyze
+rtk proxy flutter test
+```
+
+Para una ejecución nativa autorizada, los defines se cargan al compilar:
+
+```sh
+rtk proxy flutter run --dart-define-from-file=config/dev.json
+```
+
+`config/dev.json` no se versiona. Solo contiene configuración pública del cliente;
+las claves de servidor permanecen en Supabase. El hot reload no recarga defines.

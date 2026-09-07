@@ -14,6 +14,9 @@ final class ReminderNotificationScheduler {
     required DeviceTimeZoneService timeZones,
     Clock? clock,
     this.scheduleLimit = 50,
+    this.enabled,
+    this.includeTitle,
+    this.discreetBody,
   }) : _gateway = gateway,
        _mappings = mappings,
        _timeZones = timeZones,
@@ -24,9 +27,13 @@ final class ReminderNotificationScheduler {
   final DeviceTimeZoneService _timeZones;
   final Clock _clock;
   final int scheduleLimit;
+  final bool Function()? enabled, includeTitle;
+  final String Function()? discreetBody;
+  bool? _previousIncludeTitle;
   Future<void>? _reconciling;
   bool _runAgain = false;
   bool _initialized = false;
+  Future<void>? _clearing;
 
   Future<String?> initialize(NotificationPayloadCallback onPayload) async {
     if (_initialized) return null;
@@ -46,9 +53,27 @@ final class ReminderNotificationScheduler {
 
   Future<void> openSettings() => _gateway.openSettings();
   Future<void> showTest() => _gateway.showTest();
-  Future<int> scheduledCount() => _mappings.count();
+  Future<Set<String>> scheduledIds() async {
+    final pending = await _gateway.pendingIds();
+    return (await _mappings.list())
+        .where((m) => pending.contains(m.notificationId))
+        .map((m) => m.reminderId)
+        .toSet();
+  }
 
-  Future<void> clearLocalProjection() async {
+  Future<int> scheduledCount() async => (await scheduledIds()).length;
+
+  Future<void> clearLocalProjection() =>
+      _clearing ??= _clearAfterReconcile().whenComplete(() => _clearing = null);
+
+  Future<void> _clearAfterReconcile() async {
+    // Never let an older reconciliation recreate an alert after logout cleanup.
+    _runAgain = false;
+    try {
+      await _reconciling;
+    } on Object {
+      /* Still cancel tracked intents. */
+    }
     for (final mapping in await _mappings.list()) {
       await _gateway.cancel(mapping.notificationId);
       await _mappings.remove(mapping.reminderId);
@@ -56,6 +81,7 @@ final class ReminderNotificationScheduler {
   }
 
   Future<void> reconcile() {
+    if (_clearing != null) return _clearing!;
     final active = _reconciling;
     if (active != null) {
       _runAgain = true;
@@ -74,8 +100,21 @@ final class ReminderNotificationScheduler {
   }
 
   Future<void> _reconcileOnce() async {
+    final owner = _mappings.currentOwner?.call();
+    bool current() {
+      if (_mappings.currentOwner?.call() != owner) {
+        _runAgain = true;
+        return false;
+      }
+      return true;
+    }
+
     final currentMappings = await _mappings.list();
-    if (await permissionStatus() != NotificationPermissionStatus.granted) {
+    final showTitle = includeTitle?.call() ?? false;
+    final contentChanged = _previousIncludeTitle != showTitle;
+    _previousIncludeTitle = showTitle;
+    if (enabled?.call() == false ||
+        await permissionStatus() != NotificationPermissionStatus.granted) {
       for (final mapping in currentMappings) {
         await _gateway.cancel(mapping.notificationId);
         await _mappings.remove(mapping.reminderId);
@@ -83,6 +122,7 @@ final class ReminderNotificationScheduler {
       return;
     }
     final identifier = await _timeZones.currentIdentifier();
+    final pendingIds = await _gateway.pendingIds();
     final location = _timeZones.locationFor(identifier);
     final now = _clock.now().toUtc();
     final candidates = await _mappings.nextCandidates(
@@ -96,31 +136,31 @@ final class ReminderNotificationScheduler {
     for (final mapping in currentMappings) {
       final candidate = candidateByReminder[mapping.reminderId];
       final matches =
+          !contentChanged &&
           candidate != null &&
+          pendingIds.contains(mapping.notificationId) &&
           mapping.scheduledFor.isAtSameMomentAs(candidate.remindAt) &&
           mapping.timeZone == identifier;
       if (matches) {
         retained.add(mapping.reminderId);
       } else {
         await _gateway.cancel(mapping.notificationId);
-        await _mappings.remove(mapping.reminderId);
+        if (candidate == null) await _mappings.remove(mapping.reminderId);
       }
     }
     for (final candidate in candidates) {
+      if (!current()) return;
       if (retained.contains(candidate.reminderId)) continue;
       final at = tz.TZDateTime.from(candidate.remindAt, location);
       if (!at.isAfter(tz.TZDateTime.from(now, location))) continue;
-      final id = await _mappings.allocateNotificationId();
-      await _gateway.schedule(
-        id: id,
-        at: at,
-        title: 'Kipto reminder',
-        body: _body(candidate.itemTitle),
-        payload: ReminderNotificationPayload(
-          itemId: candidate.itemId,
-          reminderId: candidate.reminderId,
-        ).encode(),
-      );
+      final previous = currentMappings
+          .where((m) => m.reminderId == candidate.reminderId)
+          .firstOrNull;
+      final id =
+          previous?.notificationId ?? await _mappings.allocateNotificationId();
+      // Record intent before the system call. A process death can leave a
+      // mapping without an OS request; the next pass detects and retries it.
+      // It cannot leave an untracked scheduled notification.
       await _mappings.put(
         NotificationMapping(
           reminderId: candidate.reminderId,
@@ -129,7 +169,21 @@ final class ReminderNotificationScheduler {
           timeZone: identifier,
         ),
       );
+      if (!current()) return;
+      await _gateway.schedule(
+        id: id,
+        at: at,
+        title: 'Kipto',
+        body: showTitle
+            ? _body(candidate.itemTitle)
+            : (discreetBody?.call() ?? 'An item needs your attention.'),
+        payload: ReminderNotificationPayload(
+          itemId: candidate.itemId,
+          reminderId: candidate.reminderId,
+        ).encode(),
+      );
     }
+    current();
   }
 
   String _body(String title) {

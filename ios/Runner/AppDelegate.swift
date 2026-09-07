@@ -6,6 +6,7 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var calendarAdapter: CalendarEventEditorAdapter?
+  private let sharedCaptureAdapter = SharedCaptureAdapter()
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -24,6 +25,8 @@ import UIKit
       name: "app.kipto/calendar",
       binaryMessenger: registrar.messenger()
     ).setMethodCallHandler(adapter.handle)
+    FlutterMethodChannel(name: "app.kipto/capture", binaryMessenger: registrar.messenger())
+      .setMethodCallHandler(sharedCaptureAdapter.handle)
   }
 }
 
@@ -79,6 +82,9 @@ private final class CalendarEventEditorAdapter: NSObject, EKEventEditViewDelegat
       timeIntervalSince1970: (values["endAtMilliseconds"] as! NSNumber).doubleValue / 1000
     )
     event.isAllDay = values["allDay"] as? Bool ?? false
+    if let identifier = values["timeZone"] as? String {
+      event.timeZone = TimeZone(identifier: identifier)
+    }
     event.location = values["location"] as? String
     event.notes = values["notes"] as? String
     if let rawURL = values["url"] as? String {

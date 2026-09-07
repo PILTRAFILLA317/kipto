@@ -1,4 +1,11 @@
+import 'package:kipto/features/privacy/presentation/account_deletion_screen.dart';
+import 'package:kipto/features/billing/presentation/pro_screen.dart';
+import 'package:kipto/features/items/presentation/item_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:kipto/features/archive/presentation/archive_screen.dart';
+import 'package:kipto/features/search/presentation/search_screen.dart';
+import 'package:kipto/features/design/presentation/design_preview_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kipto/app/shell/main_shell.dart';
 import 'package:kipto/features/account/presentation/auth_gate.dart';
@@ -11,6 +18,23 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/inbox',
   routes: [
+    GoRoute(
+      path: '/items/:id',
+      builder: (_, state) =>
+          ItemDetailScreen(itemId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/account-deletion',
+      builder: (_, _) => const AccountDeletionScreen(),
+    ),
+    GoRoute(path: '/pro', builder: (_, _) => const ProScreen()),
+    GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+    GoRoute(path: '/search', builder: (_, _) => const SearchScreen()),
+    if (kDebugMode)
+      GoRoute(
+        path: '/design-preview',
+        builder: (_, _) => const DesignPreviewScreen(),
+      ),
     GoRoute(
       parentNavigatorKey: _rootNavigatorKey,
       path: '/auth/callback',
@@ -37,9 +61,9 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/settings',
+              path: '/archive',
               pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: SettingsScreen()),
+                  const NoTransitionPage(child: ArchiveScreen()),
             ),
           ],
         ),
@@ -47,3 +71,8 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
+
+void resetAccountNavigation() {
+  _rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+  appRouter.go('/inbox');
+}

@@ -1,4 +1,9 @@
+import 'package:kipto/core/domain/models/fact.dart';
+import 'package:kipto/core/domain/models/item_action.dart';
+
 import 'dart:async';
+
+import 'package:kipto/core/domain/models/source.dart';
 
 import 'package:kipto/core/sync/remote_data_source.dart';
 import 'package:kipto/core/sync/remote_models.dart';
@@ -68,6 +73,96 @@ final class SupabaseRemoteDataSource implements KiptoRemoteDataSource {
         .order('id')
         .range(offset, offset + limit - 1);
     return rows.map(RemoteReminder.fromJson).toList(growable: false);
+  }
+
+  @override
+  Future<List<Source>> upsertSources(List<Source> sources) async {
+    if (sources.isEmpty) return [];
+    final rows = await _client
+        .from('sources')
+        .upsert(sources.map((s) => s.toJson()).toList())
+        .select();
+    return rows.map(Source.fromJson).toList();
+  }
+
+  @override
+  Future<List<Source>> fetchSourcesChangedSince({
+    DateTime? cursor,
+    required int offset,
+    required int limit,
+  }) async {
+    var query = _client.from('sources').select();
+    if (cursor != null) {
+      query = query.gte(
+        'server_updated_at',
+        cursor.subtract(const Duration(seconds: 2)).toIso8601String(),
+      );
+    }
+    final rows = await query
+        .order('server_updated_at')
+        .order('id')
+        .range(offset, offset + limit - 1);
+    return rows.map(Source.fromJson).toList();
+  }
+
+  @override
+  Future<List<Fact>> upsertFacts(List<Fact> rows) async {
+    if (rows.isEmpty) return [];
+    final returned = await _client
+        .from('facts')
+        .upsert(rows.map((r) => r.toJson()).toList())
+        .select();
+    return returned.map(Fact.fromJson).toList();
+  }
+
+  @override
+  Future<List<Fact>> fetchFactsChangedSince({
+    DateTime? cursor,
+    required int offset,
+    required int limit,
+  }) async {
+    var query = _client.from('facts').select();
+    if (cursor != null) {
+      query = query.gte(
+        'server_updated_at',
+        cursor.subtract(const Duration(seconds: 2)).toIso8601String(),
+      );
+    }
+    final rows = await query
+        .order('server_updated_at')
+        .order('id')
+        .range(offset, offset + limit - 1);
+    return rows.map(Fact.fromJson).toList();
+  }
+
+  @override
+  Future<List<ItemAction>> upsertActions(List<ItemAction> rows) async {
+    if (rows.isEmpty) return [];
+    final returned = await _client
+        .from('item_actions')
+        .upsert(rows.map((r) => r.toJson()).toList())
+        .select();
+    return returned.map(ItemAction.fromJson).toList();
+  }
+
+  @override
+  Future<List<ItemAction>> fetchActionsChangedSince({
+    DateTime? cursor,
+    required int offset,
+    required int limit,
+  }) async {
+    var query = _client.from('item_actions').select();
+    if (cursor != null) {
+      query = query.gte(
+        'server_updated_at',
+        cursor.subtract(const Duration(seconds: 2)).toIso8601String(),
+      );
+    }
+    final rows = await query
+        .order('server_updated_at')
+        .order('id')
+        .range(offset, offset + limit - 1);
+    return rows.map(ItemAction.fromJson).toList();
   }
 
   @override

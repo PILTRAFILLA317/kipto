@@ -1,0 +1,51 @@
+{
+  "textPages": [
+    {
+      "page": 1,
+      "text": "La factura vence el 14/10/2026"
+    }
+  ],
+  "output": {
+    "schemaVersion": 1,
+    "sourceRevision": 1,
+    "documentLabel": "Factura",
+    "title": "Revisar factura",
+    "summary": "La factura vence el 14/10/2026",
+    "coverage": {
+      "isPartial": false,
+      "analyzedPages": [
+        1
+      ]
+    },
+    "facts": [
+      {
+        "key": "f1",
+        "type": "due_date",
+        "valueType": "date",
+        "value": {
+          "date": "2026-10-14",
+          "raw": "14/10/2026"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "La factura vence el 14/10/2026"
+        },
+        "uncertainty": null
+      }
+    ],
+    "suggestions": [
+      {
+        "key": "a1",
+        "kind": "remind",
+        "title": "Revisar factura",
+        "relatedFactKeys": [
+          "f1"
+        ],
+        "anchorFactKey": "f1",
+        "needsUserInput": [],
+        "reason": "Decide qué quieres hacer y confirma los datos."
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "textPages": [
+    {
+      "page": 1,
+      "text": "Devuelve el pedido antes del 20/10/2026"
+    }
+  ],
+  "output": {
+    "schemaVersion": 1,
+    "sourceRevision": 1,
+    "documentLabel": "Devolución",
+    "title": "Revisar devolución",
+    "summary": "Devuelve el pedido antes del 20/10/2026",
+    "coverage": {
+      "isPartial": false,
+      "analyzedPages": [
+        1
+      ]
+    },
+    "facts": [
+      {
+        "key": "f1",
+        "type": "return_deadline",
+        "valueType": "date",
+        "value": {
+          "date": "2026-10-20",
+          "raw": "20/10/2026"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "Devuelve el pedido antes del 20/10/2026"
+        },
+        "uncertainty": null
+      }
+    ],
+    "suggestions": [
+      {
+        "key": "a1",
+        "kind": "remind",
+        "title": "Revisar devolución",
+        "relatedFactKeys": [
+          "f1"
+        ],
+        "anchorFactKey": "f1",
+        "needsUserInput": [],
+        "reason": "Decide qué quieres hacer y confirma los datos."
+      }
+    ],
+    "warnings": []
+  }
+}

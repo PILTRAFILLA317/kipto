@@ -2,14 +2,45 @@ package com.example.kipto
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.os.Bundle
+import java.util.UUID
 import android.provider.CalendarContract
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var sharedIntake: SharedIntake? = null
+    private var delivery = UUID.randomUUID().toString()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        delivery = savedInstanceState?.getString("kipto.delivery") ?: UUID.randomUUID().toString()
+        super.onCreate(savedInstanceState)
+        if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false)
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("kipto.delivery", delivery)
+        super.onSaveInstanceState(outState)
+    }
+    override fun onDestroy() {
+        sharedIntake?.detach()
+        super.onDestroy()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent !== getIntent()) delivery = UUID.randomUUID().toString()
+        setIntent(intent)
+        sharedIntake?.receive(intent, delivery)
+    }
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val captureChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "app.kipto/capture")
+        sharedIntake = SharedIntake(applicationContext, captureChannel)
+        captureChannel.setMethodCallHandler { call, result ->
+            if (call.method == "returnToSource") { result.success(null); finish() }
+            else sharedIntake!!.handle(call.method, call.arguments, result)
+        }
+        sharedIntake!!.receive(intent, delivery)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "app.kipto/calendar",
@@ -36,6 +67,9 @@ class MainActivity : FlutterActivity() {
                 )
                 call.argument<String>("location")?.takeIf { it.isNotBlank() }?.let {
                     putExtra(CalendarContract.Events.EVENT_LOCATION, it)
+                }
+                call.argument<String>("timeZone")?.let {
+                    putExtra(CalendarContract.Events.EVENT_TIMEZONE, it)
                 }
                 call.argument<String>("notes")?.takeIf { it.isNotBlank() }?.let {
                     putExtra(CalendarContract.Events.DESCRIPTION, it)

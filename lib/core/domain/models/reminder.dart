@@ -9,6 +9,9 @@ final class Reminder {
     required this.updatedAt,
     required this.syncStatus,
     this.ownerId,
+    this.actionId,
+    this.title,
+    this.timeZone,
     this.completedAt,
     this.deletedAt,
     this.lastSyncedAt,
@@ -18,6 +21,7 @@ final class Reminder {
 
   final String id;
   final String? ownerId;
+  final String? actionId, title, timeZone;
   final String itemId;
   final DateTime remindAt;
   final DateTime? completedAt;

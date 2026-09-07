@@ -11,7 +11,7 @@ enum SyncStatus {
   error,
 }
 
-enum SyncEntityType { item, reminder }
+enum SyncEntityType { item, reminder, source, fact, action }
 
 enum SyncOperation { create, update, delete }
 

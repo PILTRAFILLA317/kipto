@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 // ignore_for_file: prefer_initializing_formals
 
 import 'package:clock/clock.dart';
@@ -42,6 +43,101 @@ final class LocalSyncCoordinator {
       createdAt: _clock.now().toUtc(),
     ),
   );
+
+  Future<void> claimLocalOnlyData(String userId) async {
+    await _database.transaction(() async {
+      if (activeOwnerId != userId) throw StateError("Account changed");
+      final localItems = await (_database.select(
+        _database.items,
+      )..where((row) => row.ownerId.isNull() & row.deletedAt.isNull())).get();
+      for (final item in localItems) {
+        await _database.itemsDao.updateFields(
+          item.id,
+          ItemsCompanion(
+            ownerId: Value(userId),
+            syncStatus: const Value(SyncStatus.pendingCreate),
+          ),
+        );
+        await enqueue(
+          entityType: SyncEntityType.item,
+          entityId: item.id,
+          operation: SyncOperation.create,
+        );
+      }
+      final localSources = await (_database.select(
+        _database.sources,
+      )..where((r) => r.ownerId.isNull() & r.deletedAt.isNull())).get();
+      for (final source in localSources) {
+        await (_database.update(
+          _database.sources,
+        )..where((r) => r.id.equals(source.id))).write(
+          SourcesCompanion(
+            ownerId: Value(userId),
+            syncStatus: const Value(SyncStatus.pendingCreate),
+          ),
+        );
+        await enqueue(
+          entityType: SyncEntityType.source,
+          entityId: source.id,
+          operation: SyncOperation.create,
+        );
+      }
+      final localFacts = await (_database.select(
+        _database.facts,
+      )..where((r) => r.ownerId.isNull() & r.deletedAt.isNull())).get();
+      for (final row in localFacts) {
+        await (_database.update(
+          _database.facts,
+        )..where((r) => r.id.equals(row.id))).write(
+          FactsCompanion(
+            ownerId: Value(userId),
+            syncStatus: const Value(SyncStatus.pendingCreate),
+          ),
+        );
+        await enqueue(
+          entityType: SyncEntityType.fact,
+          entityId: row.id,
+          operation: SyncOperation.create,
+        );
+      }
+      final localActions = await (_database.select(
+        _database.itemActions,
+      )..where((r) => r.ownerId.isNull() & r.deletedAt.isNull())).get();
+      for (final row in localActions) {
+        await (_database.update(
+          _database.itemActions,
+        )..where((r) => r.id.equals(row.id))).write(
+          ItemActionsCompanion(
+            ownerId: Value(userId),
+            syncStatus: const Value(SyncStatus.pendingCreate),
+          ),
+        );
+        await enqueue(
+          entityType: SyncEntityType.action,
+          entityId: row.id,
+          operation: SyncOperation.create,
+        );
+      }
+      final localReminders = await (_database.select(
+        _database.reminders,
+      )..where((row) => row.ownerId.isNull() & row.deletedAt.isNull())).get();
+      for (final reminder in localReminders) {
+        await _database.remindersDao.updateFields(
+          reminder.id,
+          RemindersCompanion(
+            ownerId: Value(userId),
+            syncStatus: const Value(SyncStatus.pendingCreate),
+          ),
+        );
+        await enqueue(
+          entityType: SyncEntityType.reminder,
+          entityId: reminder.id,
+          operation: SyncOperation.create,
+        );
+      }
+      if (activeOwnerId != userId) throw StateError("Account changed");
+    });
+  }
 
   void notifyAfterCommit() => _onLocalChange();
 }

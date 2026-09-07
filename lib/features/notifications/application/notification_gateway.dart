@@ -21,6 +21,7 @@ abstract interface class ReminderNotificationGateway {
     required String payload,
   });
   Future<void> cancel(int id);
+  Future<Set<int>> pendingIds();
   Future<void> showTest();
 }
 
@@ -32,6 +33,10 @@ final class FlutterReminderNotificationGateway
   static const _permissionRequestedKey = 'notifications.permissionRequested';
   static const _channelId = 'kipto_reminders';
   final FlutterLocalNotificationsPlugin _plugin;
+
+  @override
+  Future<Set<int>> pendingIds() async =>
+      (await _plugin.pendingNotificationRequests()).map((r) => r.id).toSet();
 
   @override
   Future<String?> initialize(NotificationPayloadCallback onPayload) async {

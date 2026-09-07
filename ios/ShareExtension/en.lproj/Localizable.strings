@@ -1,0 +1,15 @@
+"share.title" = "Keep it for later";
+"share.body" = "A copy in Kipto, ready to review when you need it.";
+"share.copying" = "Copying to this device…";
+"share.multiple" = "One matter will be created per file.";
+"share.optionalTitle" = "Optional title";
+"share.save" = "Save in Kipto";
+"share.cancel" = "Cancel";
+"share.saved" = "Saved for review in Kipto. No reminder has been scheduled.";
+"share.done" = "Return";
+"share.setup" = "The extension needs an App Group. Open Kipto or check the project setup.";
+"share.failed" = "Could not finish. Any available copy is kept for review in Kipto.";
+"share.analyze" = "Analyze now";
+"share.analyzing" = "Analyzing…";
+"share.analysisPending" = "Analysis did not finish. Tap Save to review in Kipto.";
+"share.reviewInApp" = "Confirm reminders and events in Kipto. Saving does not schedule a reminder.";

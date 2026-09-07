@@ -9,7 +9,11 @@ abstract final class AppTheme {
   static ThemeData _theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final colors = dark ? _darkScheme : _lightScheme;
-    final base = ThemeData(brightness: brightness, useMaterial3: true);
+    final base = ThemeData(
+      brightness: brightness,
+      useMaterial3: true,
+      fontFamily: 'Inter',
+    );
     final textTheme = base.textTheme.apply(
       bodyColor: colors.onSurface,
       displayColor: colors.onSurface,
@@ -18,6 +22,7 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Inter',
       brightness: brightness,
       colorScheme: colors,
       scaffoldBackgroundColor: colors.surface,
@@ -26,15 +31,15 @@ abstract final class AppTheme {
       textTheme: textTheme.copyWith(
         displaySmall: textTheme.displaySmall?.copyWith(
           fontSize: 32,
-          height: 1.06,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -1,
+          height: 37 / 32,
+          fontWeight: FontWeight.w500,
+          letterSpacing: -0.4,
         ),
         headlineSmall: textTheme.headlineSmall?.copyWith(
-          fontSize: 27,
+          fontSize: 28,
           height: 1.10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.7,
+          fontWeight: FontWeight.w500,
+          letterSpacing: -0.4,
         ),
         titleLarge: textTheme.titleLarge?.copyWith(
           fontSize: 20,
@@ -88,10 +93,11 @@ abstract final class AppTheme {
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           color: colors.onSurface,
           fontSize: 25,
           height: 1.1,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
           letterSpacing: -0.65,
         ),
       ),
@@ -113,7 +119,11 @@ abstract final class AppTheme {
         indicatorColor: colors.onSurface.withValues(alpha: 0.09),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(color: colors.onSurfaceVariant, fontSize: 11),
+          TextStyle(
+            fontFamily: 'Inter',
+            color: colors.onSurfaceVariant,
+            fontSize: 11,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -123,8 +133,14 @@ abstract final class AppTheme {
           horizontal: AppSpacing.md,
           vertical: 15,
         ),
-        labelStyle: TextStyle(color: colors.onSurfaceVariant),
-        hintStyle: TextStyle(color: colors.onSurfaceVariant),
+        labelStyle: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onSurfaceVariant,
+        ),
+        hintStyle: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onSurfaceVariant,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: BorderSide(color: hairline),
@@ -152,6 +168,7 @@ abstract final class AppTheme {
           side: BorderSide(color: hairline),
         ),
         titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           color: colors.onSurface,
           fontSize: 20,
           height: 1.2,
@@ -179,7 +196,10 @@ abstract final class AppTheme {
         elevation: 0,
         behavior: SnackBarBehavior.floating,
         backgroundColor: colors.surfaceContainerHighest,
-        contentTextStyle: TextStyle(color: colors.onSurface),
+        contentTextStyle: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onSurface,
+        ),
         actionTextColor: colors.primary,
         insetPadding: const EdgeInsets.fromLTRB(20, 8, 20, 22),
         shape: RoundedRectangleBorder(
@@ -194,11 +214,13 @@ abstract final class AppTheme {
         selectedColor: colors.onSurface.withValues(alpha: dark ? 0.13 : 0.09),
         disabledColor: colors.surfaceContainer.withValues(alpha: 0.40),
         labelStyle: TextStyle(
+          fontFamily: 'Inter',
           color: colors.onSurfaceVariant,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
         secondaryLabelStyle: TextStyle(
+          fontFamily: 'Inter',
           color: colors.onSurface,
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -210,9 +232,10 @@ abstract final class AppTheme {
         style:
             FilledButton.styleFrom(
               elevation: 0,
-              minimumSize: const Size(48, 48),
+              minimumSize: const Size(48, 56),
               padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 13),
               textStyle: const TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -228,10 +251,14 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           elevation: 0,
-          minimumSize: const Size(48, 48),
+          minimumSize: const Size(48, 56),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
           side: BorderSide(color: hairline),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.md),
           ),
@@ -241,13 +268,16 @@ abstract final class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: colors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+          ),
           shape: const StadiumBorder(),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size.square(44),
+          minimumSize: const Size.square(48),
           iconSize: 20,
           foregroundColor: colors.onSurface,
           shape: const CircleBorder(),
@@ -262,6 +292,7 @@ abstract final class AppTheme {
         iconColor: colors.onSurfaceVariant,
         textColor: colors.onSurface,
         subtitleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           color: colors.onSurfaceVariant,
           fontSize: 12.5,
           height: 1.34,
@@ -281,10 +312,14 @@ abstract final class AppTheme {
           EdgeInsets.symmetric(horizontal: AppSpacing.md),
         ),
         textStyle: WidgetStatePropertyAll(
-          TextStyle(color: colors.onSurface, fontSize: 15),
+          TextStyle(fontFamily: 'Inter', color: colors.onSurface, fontSize: 15),
         ),
         hintStyle: WidgetStatePropertyAll(
-          TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
+          TextStyle(
+            fontFamily: 'Inter',
+            color: colors.onSurfaceVariant,
+            fontSize: 14,
+          ),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
@@ -306,7 +341,11 @@ abstract final class AppTheme {
             ),
           ),
           textStyle: const WidgetStatePropertyAll(
-            TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

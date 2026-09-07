@@ -1,0 +1,53 @@
+{
+  "textPages": [
+    {
+      "page": 1,
+      "text": "Tu cita es el 14/10/2026 a las 09:30, hora de Madrid."
+    }
+  ],
+  "output": {
+    "schemaVersion": 1,
+    "sourceRevision": 1,
+    "documentLabel": "Cita",
+    "title": "Revisar cita",
+    "summary": "Tu cita es el 14/10/2026 a las 09:30, hora de Madrid.",
+    "coverage": {
+      "isPartial": false,
+      "analyzedPages": [
+        1
+      ]
+    },
+    "facts": [
+      {
+        "key": "f1",
+        "type": "appointment",
+        "valueType": "datetime",
+        "value": {
+          "date": "2026-10-14",
+          "time": "09:30",
+          "zone": "Europe/Madrid",
+          "raw": "14/10/2026 a las 09:30, hora de Madrid"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "Tu cita es el 14/10/2026 a las 09:30, hora de Madrid."
+        },
+        "uncertainty": null
+      }
+    ],
+    "suggestions": [
+      {
+        "key": "a1",
+        "kind": "event",
+        "title": "Revisar cita",
+        "relatedFactKeys": [
+          "f1"
+        ],
+        "anchorFactKey": "f1",
+        "needsUserInput": [],
+        "reason": "Decide qué quieres hacer y confirma los datos."
+      }
+    ],
+    "warnings": []
+  }
+}

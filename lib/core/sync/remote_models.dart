@@ -69,6 +69,9 @@ final class RemoteReminder {
     required this.clientUpdatedAt,
     required this.serverUpdatedAt,
     this.completedAt,
+    this.actionId,
+    this.title,
+    this.timeZone,
     this.deletedAt,
     this.sourceDeviceId,
   });
@@ -77,6 +80,9 @@ final class RemoteReminder {
     id: json['id'] as String,
     userId: json['user_id'] as String,
     itemId: json['item_id'] as String,
+    actionId: json['action_id'] as String?,
+    title: json['title'] as String?,
+    timeZone: json['time_zone'] as String?,
     remindAt: _date(json['remind_at']),
     createdAt: _date(json['created_at']),
     clientUpdatedAt: _date(json['client_updated_at']),
@@ -89,6 +95,7 @@ final class RemoteReminder {
   final String id;
   final String userId;
   final String itemId;
+  final String? actionId, title, timeZone;
   final DateTime remindAt;
   final DateTime createdAt;
   final DateTime clientUpdatedAt;
@@ -101,6 +108,9 @@ final class RemoteReminder {
     'id': id,
     'user_id': userId,
     'item_id': itemId,
+    'action_id': actionId,
+    'title': title,
+    'time_zone': timeZone,
     'remind_at': remindAt.toUtc().toIso8601String(),
     'created_at': createdAt.toUtc().toIso8601String(),
     'client_updated_at': clientUpdatedAt.toUtc().toIso8601String(),

@@ -1,0 +1,56 @@
+{
+  "textPages": [
+    {
+      "page": 1,
+      "text": "Mañana quedamos. Confírmame el 03/04."
+    }
+  ],
+  "output": {
+    "schemaVersion": 1,
+    "sourceRevision": 1,
+    "documentLabel": "Conversación",
+    "title": "Revisar conversación",
+    "summary": "Mañana quedamos. Confírmame el 03/04.",
+    "coverage": {
+      "isPartial": false,
+      "analyzedPages": [
+        1
+      ]
+    },
+    "facts": [
+      {
+        "key": "f1",
+        "type": "possible_date",
+        "valueType": "date",
+        "value": {
+          "date": null,
+          "raw": "Mañana / 03/04"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "Mañana quedamos. Confírmame el 03/04."
+        },
+        "uncertainty": "Falta contexto temporal fiable"
+      }
+    ],
+    "suggestions": [
+      {
+        "key": "a1",
+        "kind": "remind",
+        "title": "Revisar conversación",
+        "relatedFactKeys": [
+          "f1"
+        ],
+        "anchorFactKey": "f1",
+        "needsUserInput": [
+          "date",
+          "year",
+          "time",
+          "zone"
+        ],
+        "reason": "Decide qué quieres hacer y confirma los datos."
+      }
+    ],
+    "warnings": []
+  }
+}

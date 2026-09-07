@@ -4,7 +4,8 @@ import 'package:kipto/core/domain/enums/item_enums.dart';
 import 'package:kipto/features/notifications/domain/notification_models.dart';
 
 final class NotificationMappingStore {
-  const NotificationMappingStore(this._database);
+  const NotificationMappingStore(this._database, {this.currentOwner});
+  final String? Function()? currentOwner;
   final AppDatabase _database;
 
   Future<List<NotificationMapping>> list() async =>
@@ -39,12 +40,14 @@ final class NotificationMappingStore {
             AND r.remind_at > ?
             AND i.deleted_at IS NULL
             AND i.status = ?
+            ${currentOwner == null ? '' : 'AND i.owner_id IS ?'}
           ORDER BY r.remind_at ASC
           LIMIT ?
         ''',
                 variables: [
                   Variable.withString(after.toUtc().toIso8601String()),
                   Variable.withString(ItemStatus.active.storageValue),
+                  if (currentOwner != null) Variable<String>(currentOwner!()),
                   Variable.withInt(limit),
                 ],
                 readsFrom: {_database.reminders, _database.items},

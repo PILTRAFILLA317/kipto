@@ -412,3 +412,29 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+[functions.analyze-source]
+verify_jwt = true
+entrypoint = "./functions/analyze-source/index.ts"
+import_map = "./functions/deno.json"
+
+[functions.source-backup]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/source-backup/index.ts"
+import_map = "./functions/deno.json"
+
+[functions.revenuecat-webhook]
+enabled = true
+# RevenueCat has no Supabase JWT. Handler verifies its configured authorization
+# header before parsing the event and verifies subscriber state through REST.
+verify_jwt = false
+entrypoint = "./functions/revenuecat-webhook/index.ts"
+import_map = "./functions/deno.json"
+
+[functions.delete-account]
+enabled = true
+# Auth validates mutations. Opaque completed receipts remain readable after Auth deletion.
+verify_jwt = false
+entrypoint = "./functions/delete-account/index.ts"
+import_map = "./functions/deno.json"

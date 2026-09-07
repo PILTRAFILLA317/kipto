@@ -1,3 +1,6 @@
+import 'package:kipto/core/repositories/life_admin_mapper.dart';
+import 'package:kipto/core/domain/models/source.dart';
+import 'package:kipto/core/repositories/source_mapper.dart';
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
@@ -24,6 +27,7 @@ final class SyncService {
     this.pushBatchSize = 100,
     this.pullPageSize = 500,
     this.onRemindersChanged,
+    this.canSync,
   }) : _database = database,
        _auth = auth,
        _remote = remote,
@@ -38,6 +42,8 @@ final class SyncService {
   final int pushBatchSize;
   final int pullPageSize;
   final Future<void> Function()? onRemindersChanged;
+  final bool Function()? canSync;
+  bool _stopping = false;
   final StreamController<SyncStatusSnapshot> _statusController =
       StreamController.broadcast();
 
@@ -58,20 +64,17 @@ final class SyncService {
   }
 
   Future<void> initialize() async {
-    if (_initialized || _remote == null) return;
+    if (_initialized || _remote == null || canSync?.call() == false) return;
+    _stopping = false;
     _initialized = true;
-    try {
-      final session = await _auth.recoverSession();
-      if (session == null) return;
-      await _bindUser(session.user.id);
-      await syncNow(SyncReason.startup);
-    } on Object catch (error) {
-      await _recordFailure(error);
-    }
+    await syncNow(SyncReason.startup);
   }
 
+  bool _canContinue(String userId) =>
+      !_stopping && canSync?.call() != false && _auth.userId == userId;
+
   void scheduleSync([SyncReason reason = SyncReason.localChange]) {
-    if (_remote == null) return;
+    if (_remote == null || _stopping || canSync?.call() == false) return;
     _localDebounce?.cancel();
     _localDebounce = Timer(
       const Duration(milliseconds: 800),
@@ -80,7 +83,9 @@ final class SyncService {
   }
 
   Future<void> syncNow([SyncReason reason = SyncReason.manual]) {
-    if (_remote == null) return Future.value();
+    if (_remote == null || _stopping || canSync?.call() == false) {
+      return Future.value();
+    }
     final inFlight = _inFlight;
     if (inFlight != null) {
       _runAgain = true;
@@ -94,10 +99,12 @@ final class SyncService {
   Future<void> _run(SyncReason reason) async {
     do {
       _runAgain = false;
+      if (_stopping || canSync?.call() == false) return;
       try {
         final session = await _auth.recoverSession();
-        if (session == null) return;
+        if (session == null || !_canContinue(session.user.id)) return;
         if (_boundUserId != session.user.id) await _bindUser(session.user.id);
+        if (!_canContinue(session.user.id)) return;
         final now = _clock.now().toUtc();
         _setStatus(
           SyncStatusSnapshot(
@@ -108,6 +115,7 @@ final class SyncService {
           ),
         );
         final state = await _ensureLocalState();
+        if (!_canContinue(session.user.id)) return;
         await _remote!.upsertDevice(
           RemoteDevice(
             id: state.installationId,
@@ -116,11 +124,20 @@ final class SyncService {
             lastSeenAt: now,
           ),
         );
-        await _claimLocalOnlyData(session.user.id);
+        if (!_canContinue(session.user.id)) return;
+        // Claiming local-only data belongs to the explicit start/analysis
+        // flow. Restoring an existing account never silently merges a library.
         await _pushItems(session.user.id);
+        await _pushSources(session.user.id);
+        await _pushFacts(session.user.id);
+        await _pushActions(session.user.id);
         await _pushReminders(session.user.id);
         await _pullItems(session.user.id);
+        await _pullSources(session.user.id);
+        await _pullFacts(session.user.id);
+        await _pullActions(session.user.id);
         await _pullReminders(session.user.id);
+        if (!_canContinue(session.user.id)) return;
         await (_database.update(
           _database.cloudSyncStates,
         )..where((row) => row.id.equals('local'))).write(
@@ -143,6 +160,7 @@ final class SyncService {
           'installation': state.installationId,
         });
       } on Object catch (error) {
+        if (_stopping || canSync?.call() == false) return;
         await _recordFailure(error);
       }
     } while (_runAgain);
@@ -160,7 +178,9 @@ final class SyncService {
     await (_database.update(_database.cloudSyncStates)
           ..where((row) => row.id.equals('local')))
         .write(CloudSyncStatesCompanion(userId: Value(userId)));
+    if (!_canContinue(userId)) return;
     _realtime ??= await _remote!.subscribeToInvalidations(userId);
+    if (!_canContinue(userId)) return;
     _realtimeEvents ??= _realtime!.invalidations.listen((_) {
       _realtimeDebounce?.cancel();
       _realtimeDebounce = Timer(
@@ -184,46 +204,10 @@ final class SyncService {
     )..where((row) => row.id.equals('local'))).getSingle());
   }
 
-  Future<void> _claimLocalOnlyData(String userId) async {
-    final state = await _ensureLocalState();
-    await _database.transaction(() async {
-      final localItems = await (_database.select(
-        _database.items,
-      )..where((row) => row.ownerId.isNull())).get();
-      for (final item in localItems) {
-        await _database.itemsDao.updateFields(
-          item.id,
-          ItemsCompanion(
-            ownerId: Value(userId),
-            syncStatus: const Value(SyncStatus.pendingCreate),
-          ),
-        );
-        await _enqueue(SyncEntityType.item, item.id, SyncOperation.create);
-      }
-      final localReminders = await (_database.select(
-        _database.reminders,
-      )..where((row) => row.ownerId.isNull())).get();
-      for (final reminder in localReminders) {
-        await _database.remindersDao.updateFields(
-          reminder.id,
-          RemindersCompanion(
-            ownerId: Value(userId),
-            syncStatus: const Value(SyncStatus.pendingCreate),
-          ),
-        );
-        await _enqueue(
-          SyncEntityType.reminder,
-          reminder.id,
-          SyncOperation.create,
-        );
-      }
-    });
-    _log('sync.claimed_local', {'installation': state.installationId});
-  }
-
   Future<void> _pushItems(String userId) async {
     final entries = await _latestEntries(SyncEntityType.item);
     for (final chunk in _chunks(entries, pushBatchSize)) {
+      if (!_canContinue(userId)) return;
       final rows = await _database.itemsDao.findByIds(chunk.keys);
       final state = await _ensureLocalState();
       final eligible = rows
@@ -237,9 +221,18 @@ final class SyncService {
           )
           .toList(growable: false);
       if (eligible.isNotEmpty) {
+        if (!_canContinue(userId)) return;
         final returned = await _remote!.upsertItems(eligible);
+        if (!_canContinue(userId)) return;
         await _database.transaction(() async {
+          final pendingIds = (await _database.syncQueueDao.pending())
+              .map((e) => e.id)
+              .toSet();
           for (final remote in returned) {
+            if (remote.userId != userId ||
+                !pendingIds.contains(chunk[remote.id]?.id)) {
+              continue;
+            }
             await _database.itemsDao.updateFields(
               remote.id,
               remoteItemUpdate(remote),
@@ -256,6 +249,7 @@ final class SyncService {
   Future<void> _pushReminders(String userId) async {
     final entries = await _latestEntries(SyncEntityType.reminder);
     for (final chunk in _chunks(entries, pushBatchSize)) {
+      if (!_canContinue(userId)) return;
       final rows = await _database.remindersDao.findByIds(chunk.keys);
       final state = await _ensureLocalState();
       final eligible = rows
@@ -269,9 +263,18 @@ final class SyncService {
           )
           .toList(growable: false);
       if (eligible.isNotEmpty) {
+        if (!_canContinue(userId)) return;
         final returned = await _remote!.upsertReminders(eligible);
+        if (!_canContinue(userId)) return;
         await _database.transaction(() async {
+          final pendingIds = (await _database.syncQueueDao.pending())
+              .map((e) => e.id)
+              .toSet();
           for (final remote in returned) {
+            if (remote.userId != userId ||
+                !pendingIds.contains(chunk[remote.id]?.id)) {
+              continue;
+            }
             await _database.remindersDao.updateFields(
               remote.id,
               remoteReminderUpdate(remote),
@@ -285,16 +288,280 @@ final class SyncService {
     }
   }
 
+  SourcesCompanion _sourceCompanion(Source source) => SourcesCompanion.insert(
+    id: source.id,
+    itemId: source.itemId,
+    ownerId: Value(source.ownerId),
+    kind: source.kind.name,
+    origin: source.origin.name,
+    originalName: source.originalName,
+    mimeType: source.mimeType,
+    byteSize: source.byteSize,
+    contentHash: source.contentHash,
+    revision: Value(source.revision),
+    textContent: Value(source.textContent),
+    pageCount: Value(source.pageCount),
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+    remoteServerUpdatedAt: Value(source.serverUpdatedAt),
+    deletedAt: Value(source.deletedAt),
+    syncStatus: SyncStatus.synced,
+  );
+
+  Future<void> _pushSources(String userId) async {
+    final entries = await _latestEntries(SyncEntityType.source);
+    for (final chunk in _chunks(entries, pushBatchSize)) {
+      if (!_canContinue(userId)) return;
+      final rows = await (_database.select(
+        _database.sources,
+      )..where((r) => r.id.isIn(chunk.keys) & r.ownerId.equals(userId))).get();
+      if (!_canContinue(userId)) return;
+      final returned = await _remote!.upsertSources(
+        rows.map(sourceFromRow).toList(),
+      );
+      if (!_canContinue(userId)) return;
+      await _database.transaction(() async {
+        final pendingIds = (await _database.syncQueueDao.pending())
+            .map((e) => e.id)
+            .toSet();
+        for (final source in returned) {
+          if (source.ownerId != userId ||
+              !pendingIds.contains(chunk[source.id]?.id)) {
+            continue;
+          }
+          await _database
+              .into(_database.sources)
+              .insertOnConflictUpdate(_sourceCompanion(source));
+        }
+        await _removeQueueRows(chunk.values);
+      });
+    }
+  }
+
+  Future<void> _pullSources(String userId) async {
+    final state = await _ensureLocalState();
+    var offset = 0;
+    var cursor = state.lastSourcesCursor;
+    while (true) {
+      if (!_canContinue(userId)) return;
+      final page = await _remote!.fetchSourcesChangedSince(
+        cursor: state.lastSourcesCursor,
+        offset: offset,
+        limit: pullPageSize,
+      );
+      if (!_canContinue(userId)) return;
+      await _database.transaction(() async {
+        for (final source in page) {
+          if (source.ownerId != userId) continue;
+          final parent = await _database.itemsDao.findById(
+            source.itemId,
+            includeDeleted: true,
+          );
+          if (parent?.ownerId != userId) {
+            throw StateError('Source parent owner mismatch');
+          }
+          final local = await (_database.select(
+            _database.sources,
+          )..where((r) => r.id.equals(source.id))).getSingleOrNull();
+          if (local == null ||
+              _remoteWins(
+                local.syncStatus,
+                local.updatedAt,
+                source.updatedAt,
+              )) {
+            await _database
+                .into(_database.sources)
+                .insertOnConflictUpdate(_sourceCompanion(source));
+            if (local == null) {
+              await _database
+                  .into(_database.sourceFiles)
+                  .insert(
+                    SourceFilesCompanion.insert(
+                      sourceId: source.id,
+                      availability: const Value('remoteOnly'),
+                    ),
+                  );
+            }
+            await _removeEntityQueue(SyncEntityType.source, source.id);
+          }
+          if (source.serverUpdatedAt != null &&
+              (cursor == null || source.serverUpdatedAt!.isAfter(cursor!))) {
+            cursor = source.serverUpdatedAt;
+          }
+        }
+      });
+      if (page.length < pullPageSize) break;
+      offset += page.length;
+    }
+    await (_database.update(_database.cloudSyncStates)
+          ..where((r) => r.id.equals('local')))
+        .write(CloudSyncStatesCompanion(lastSourcesCursor: Value(cursor)));
+  }
+
+  Future<void> _pushFacts(String userId) async {
+    final entries = await _latestEntries(SyncEntityType.fact);
+    for (final chunk in _chunks(entries, pushBatchSize)) {
+      if (!_canContinue(userId)) return;
+      final rows = await (_database.select(
+        _database.facts,
+      )..where((r) => r.id.isIn(chunk.keys) & r.ownerId.equals(userId))).get();
+      if (!_canContinue(userId)) return;
+      final returned = await _remote!.upsertFacts(
+        rows.map(factFromRow).toList(),
+      );
+      if (!_canContinue(userId)) return;
+      await _database.transaction(() async {
+        final pending = (await _database.syncQueueDao.pending())
+            .map((e) => e.id)
+            .toSet();
+        for (final entity in returned) {
+          if (entity.ownerId != userId ||
+              !pending.contains(chunk[entity.id]?.id)) {
+            continue;
+          }
+          await _database
+              .into(_database.facts)
+              .insertOnConflictUpdate(factCompanion(entity, SyncStatus.synced));
+        }
+        await _removeQueueRows(chunk.values);
+      });
+    }
+  }
+
+  Future<void> _pullFacts(String userId) async {
+    final state = await _ensureLocalState();
+    var cursor = state.lastFactsCursor;
+    var offset = 0;
+    while (true) {
+      if (!_canContinue(userId)) return;
+      final page = await _remote!.fetchFactsChangedSince(
+        cursor: state.lastFactsCursor,
+        offset: offset,
+        limit: pullPageSize,
+      );
+      if (!_canContinue(userId)) return;
+      await _database.transaction(() async {
+        for (final entity in page) {
+          if (entity.ownerId != userId) continue;
+          final local = await (_database.select(
+            _database.facts,
+          )..where((r) => r.id.equals(entity.id))).getSingleOrNull();
+          if (local == null ||
+              _remoteWins(
+                local.syncStatus,
+                local.updatedAt,
+                entity.updatedAt,
+              )) {
+            await _database
+                .into(_database.facts)
+                .insertOnConflictUpdate(
+                  factCompanion(entity, SyncStatus.synced),
+                );
+            await _removeEntityQueue(SyncEntityType.fact, entity.id);
+          }
+          if (entity.serverUpdatedAt != null &&
+              (cursor == null || entity.serverUpdatedAt!.isAfter(cursor!))) {
+            cursor = entity.serverUpdatedAt;
+          }
+        }
+      });
+      if (page.length < pullPageSize) break;
+      offset += page.length;
+    }
+    await (_database.update(_database.cloudSyncStates)
+          ..where((r) => r.id.equals('local')))
+        .write(CloudSyncStatesCompanion(lastFactsCursor: Value(cursor)));
+  }
+
+  Future<void> _pushActions(String userId) async {
+    final entries = await _latestEntries(SyncEntityType.action);
+    for (final chunk in _chunks(entries, pushBatchSize)) {
+      if (!_canContinue(userId)) return;
+      final rows = await (_database.select(
+        _database.itemActions,
+      )..where((r) => r.id.isIn(chunk.keys) & r.ownerId.equals(userId))).get();
+      if (!_canContinue(userId)) return;
+      final returned = await _remote!.upsertActions(
+        rows.map(actionFromRow).toList(),
+      );
+      if (!_canContinue(userId)) return;
+      await _database.transaction(() async {
+        final pending = (await _database.syncQueueDao.pending())
+            .map((e) => e.id)
+            .toSet();
+        for (final entity in returned) {
+          if (entity.ownerId != userId ||
+              !pending.contains(chunk[entity.id]?.id)) {
+            continue;
+          }
+          await _database
+              .into(_database.itemActions)
+              .insertOnConflictUpdate(
+                actionCompanion(entity, SyncStatus.synced),
+              );
+        }
+        await _removeQueueRows(chunk.values);
+      });
+    }
+  }
+
+  Future<void> _pullActions(String userId) async {
+    final state = await _ensureLocalState();
+    var cursor = state.lastActionsCursor;
+    var offset = 0;
+    while (true) {
+      if (!_canContinue(userId)) return;
+      final page = await _remote!.fetchActionsChangedSince(
+        cursor: state.lastActionsCursor,
+        offset: offset,
+        limit: pullPageSize,
+      );
+      if (!_canContinue(userId)) return;
+      await _database.transaction(() async {
+        for (final entity in page) {
+          if (entity.ownerId != userId) continue;
+          final local = await (_database.select(
+            _database.itemActions,
+          )..where((r) => r.id.equals(entity.id))).getSingleOrNull();
+          if (local == null ||
+              _remoteWins(
+                local.syncStatus,
+                local.updatedAt,
+                entity.updatedAt,
+              )) {
+            await _database
+                .into(_database.itemActions)
+                .insertOnConflictUpdate(
+                  actionCompanion(entity, SyncStatus.synced),
+                );
+            await _removeEntityQueue(SyncEntityType.action, entity.id);
+          }
+          if (entity.serverUpdatedAt != null &&
+              (cursor == null || entity.serverUpdatedAt!.isAfter(cursor!))) {
+            cursor = entity.serverUpdatedAt;
+          }
+        }
+      });
+      if (page.length < pullPageSize) break;
+      offset += page.length;
+    }
+    await (_database.update(_database.cloudSyncStates)
+          ..where((r) => r.id.equals('local')))
+        .write(CloudSyncStatesCompanion(lastActionsCursor: Value(cursor)));
+  }
+
   Future<void> _pullItems(String userId) async {
     final state = await _ensureLocalState();
     var offset = 0;
     DateTime? maxCursor = state.lastItemsCursor;
     while (true) {
+      if (!_canContinue(userId)) return;
       final page = await _remote!.fetchItemsChangedSince(
         cursor: state.lastItemsCursor,
         offset: offset,
         limit: pullPageSize,
       );
+      if (!_canContinue(userId)) return;
       await _database.transaction(() async {
         for (final remote in page.where((row) => row.userId == userId)) {
           final local = await _database.itemsDao.findById(
@@ -333,11 +600,13 @@ final class SyncService {
     DateTime? maxCursor = state.lastRemindersCursor;
     var changed = false;
     while (true) {
+      if (!_canContinue(userId)) return;
       final page = await _remote!.fetchRemindersChangedSince(
         cursor: state.lastRemindersCursor,
         offset: offset,
         limit: pullPageSize,
       );
+      if (!_canContinue(userId)) return;
       await _database.transaction(() async {
         for (final remote in page.where((row) => row.userId == userId)) {
           final item = await _database.itemsDao.findById(
@@ -412,20 +681,6 @@ final class SyncService {
     }
   }
 
-  Future<void> _enqueue(
-    SyncEntityType type,
-    String id,
-    SyncOperation operation,
-  ) => _database.syncQueueDao.enqueue(
-    SyncQueueCompanion.insert(
-      id: _uuid.v4(),
-      entityType: type,
-      entityId: id,
-      operation: operation,
-      createdAt: _clock.now().toUtc(),
-    ),
-  );
-
   Future<void> _removeQueueRows(Iterable<SyncQueueRow> entries) async {
     for (final entry in entries) {
       await _database.syncQueueDao.remove(entry.id);
@@ -483,10 +738,14 @@ final class SyncService {
   }
 
   Future<void> stopForAccountChange() async {
+    _stopping = true;
+    _runAgain = false;
     _localDebounce?.cancel();
     _realtimeDebounce?.cancel();
+    await _inFlight;
     await _realtimeEvents?.cancel();
     await _realtime?.dispose();
+    _realtimeDebounce?.cancel();
     _realtimeEvents = null;
     _realtime = null;
     _boundUserId = null;

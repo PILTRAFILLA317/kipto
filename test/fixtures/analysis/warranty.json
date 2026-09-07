@@ -1,0 +1,50 @@
+{
+  "textPages": [
+    {
+      "page": 1,
+      "text": "Guarda el justificante de tu compra."
+    }
+  ],
+  "output": {
+    "schemaVersion": 1,
+    "sourceRevision": 1,
+    "documentLabel": "Garantía",
+    "title": "Revisar garantía",
+    "summary": "Guarda el justificante de tu compra.",
+    "coverage": {
+      "isPartial": false,
+      "analyzedPages": [
+        1
+      ]
+    },
+    "facts": [
+      {
+        "key": "f1",
+        "type": "reference",
+        "valueType": "text",
+        "value": {
+          "text": "Justificante de compra"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "Guarda el justificante de tu compra."
+        },
+        "uncertainty": null
+      }
+    ],
+    "suggestions": [
+      {
+        "key": "a1",
+        "kind": "keep",
+        "title": "Revisar garantía",
+        "relatedFactKeys": [
+          "f1"
+        ],
+        "anchorFactKey": null,
+        "needsUserInput": [],
+        "reason": "Decide qué quieres hacer y confirma los datos."
+      }
+    ],
+    "warnings": []
+  }
+}

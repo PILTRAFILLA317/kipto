@@ -1,0 +1,327 @@
+{
+  "@@locale": "es",
+  "pending": "Pendientes",
+  "archive": "Archivo",
+  "add": "Añadir",
+  "search": "Buscar",
+  "settings": "Ajustes",
+  "close": "Cerrar",
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "retry": "Reintentar",
+  "edit": "Editar",
+  "delete": "Eliminar",
+  "resolve": "Resolver",
+  "reopen": "Reabrir",
+  "all": "Todo",
+  "saved": "Guardado",
+  "resolved": "Resuelto",
+  "title": "Título",
+  "note": "Nota",
+  "outOfYourHead": "Fuera de tu cabeza.",
+  "emptyPendingTitle": "Un poco más de tranquilidad.",
+  "emptyPendingBody": "Guarda un documento o escribe eso que quieres recordar. Todo empieza aquí.",
+  "emptyArchiveTitle": "Un lugar para lo importante.",
+  "emptyArchiveBody": "Aquí estarán tus documentos guardados y asuntos resueltos, a mano cuando los necesites.",
+  "image": "Imagen",
+  "document": "Documento",
+  "writeOrPaste": "Escribir o pegar",
+  "shareHint": "También puedes enviar una foto, un PDF o texto a Kipto desde Compartir en otra app.",
+  "notAvailableYet": "Disponible en la siguiente fase de implementación",
+  "localError": "No hemos podido abrir tus asuntos guardados. Vuelve a intentarlo.",
+  "noResults": "Sin resultados",
+  "searchHint": "Busca entre tus asuntos",
+  "withoutDate": "Sin fecha",
+  "localSaved": "Guardado en este dispositivo",
+  "notAnalyzed": "Sin analizar",
+  "review": "Revisar",
+  "toReview": "Para revisar",
+  "upcoming": "Próximamente",
+  "appearance": "Apariencia",
+  "system": "Sistema",
+  "light": "Claro",
+  "dark": "Oscuro",
+  "reduceMotion": "Reducir movimiento",
+  "haptics": "Respuesta háptica",
+  "notifications": "Avisos",
+  "account": "Cuenta",
+  "syncNow": "Sincronizar ahora",
+  "cloudUnavailable": "La sincronización no está configurada. Tus asuntos se conservan en este dispositivo.",
+  "preview": "Vista previa del diseño",
+  "previewTitle": "Revisar la renovación del seguro",
+  "previewDate": "16 de septiembre · fecha por confirmar",
+  "previewSummary": "Comprueba el plazo de preaviso en el documento original.",
+  "previewSecondTitle": "Cita con el dentista",
+  "previewSecondDate": "18 de septiembre · 09:30",
+  "previewError": "No se ha podido leer el documento. El original sigue guardado.",
+  "activeCount": "{count, plural, =0{Ningún asunto activo} =1{1 asunto activo} other{{count} asuntos activos}}",
+  "@activeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saving": "Guardando…",
+  "confirmingAction": "Confirmando…",
+  "calendarPermissionDenied": "No se ha autorizado el acceso al calendario.",
+  "evidenceDetails": "Evidencia del dato",
+  "captureTooLarge": "El límite es de 20 MiB por archivo y 60.000 caracteres por nota.",
+  "captureUnsupported": "Elige un archivo JPEG, PNG, WebP, HEIC o PDF.",
+  "captureUnreadable": "No se puede leer este archivo. Comprueba que está completo y no está protegido con contraseña.",
+  "captureFailed": "No se ha podido guardar esta fuente. Tus asuntos anteriores siguen guardados. Vuelve a intentarlo.",
+  "captureAccountChanged": "Tu cuenta ha cambiado. Vuelve a abrir Añadir antes de guardar en esta biblioteca.",
+  "sourceUnavailable": "El original no está disponible en este dispositivo.",
+  "openOriginal": "Abrir original",
+  "source": "Fuente",
+  "syncConsent": "Sincronizar mis asuntos",
+  "syncConsentBody": "Incluye títulos, notas, texto de fuentes y datos extraídos en tu biblioteca privada en la nube. Los archivos originales necesitan un consentimiento de backup separado.",
+  "cloud": "Nube y privacidad",
+  "protectLibrary": "Proteger esta biblioteca",
+  "protectLibraryBody": "Conecta Apple o Google para recuperar tus asuntos en otro dispositivo.",
+  "getStarted": "Continuar con una cuenta privada",
+  "restoreApple": "Restaurar con Apple",
+  "restoreGoogle": "Restaurar con Google",
+  "signOut": "Cerrar sesión",
+  "signOutBody": "Retira esta biblioteca de este dispositivo. Los datos en la nube se conservan.",
+  "operationFailed": "No se ha podido completar la acción. Vuelve a intentarlo.",
+  "notificationEnabled": "Los avisos locales están activados",
+  "notificationDisabled": "Los avisos están desactivados",
+  "notificationAsk": "Actívalos al crear un aviso",
+  "notificationUnavailable": "No disponible en este dispositivo",
+  "sourceTextHint": "Escribe o pega lo que quieres conservar",
+  "fieldRequired": "Escribe un título y un texto.",
+  "recoveryFailed": "No se han podido recuperar algunas fuentes pendientes. Sus archivos se han conservado.",
+  "pdfLimit": "Solo se pueden analizar hasta 10 páginas. Conserva este original o aporta un PDF más corto.",
+  "sharedReady": "{count, plural, =1{1 fuente compartida está lista} other{{count} fuentes compartidas están listas}}",
+  "sharedAsMatters": "{count, plural, =1{Se guardará como un asunto.} other{Se guardarán como {count} asuntos independientes.}}",
+  "@sharedReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@sharedAsMatters": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "discardCapture": "Descartar captura",
+  "discardCaptureBody": "Se eliminará esta entrega pendiente. Los asuntos ya guardados se conservarán.",
+  "detectedDate": "Fecha detectada",
+  "detectedFact": "Dato detectado",
+  "correctedFact": "Dato corregido",
+  "originalValue": "Valor original",
+  "checkOriginal": "Comprueba este dato en el original antes de usarlo.",
+  "proposedReminder": "Aviso propuesto",
+  "calendarMonths": "{count, plural, =1{1 mes natural} other{{count} meses naturales}}",
+  "calendarDays": "{count, plural, =1{1 día} other{{count} días}}",
+  "pageNumber": "Página {count}",
+  "@calendarMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@pageNumber": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "analyze": "Analizar fuente",
+  "analyzeAgain": "Volver a analizar",
+  "analysisConsentTitle": "Analizar con IA",
+  "analysisConsentBody": "Se enviará una copia preparada de esta fuente a Supabase y OpenAI para extraer datos y propuestas. Se creará una sesión anónima si hace falta. El original se conserva aquí. Esto no activa sincronización ni copia de seguridad. Puedes desactivarlo en Ajustes.",
+  "analysisConsent": "Permitir análisis con IA",
+  "analysisConsentShort": "Envía solo las fuentes que elijas. No crea avisos automáticamente.",
+  "analysisQueued": "Guardado · por analizar",
+  "analysisRunning": "Analizando la fuente…",
+  "analysisRetry": "Esperando para reintentar",
+  "analysisReady": "Análisis listo · revisa las propuestas",
+  "analysisPaused": "El análisis está desactivado en Ajustes.",
+  "analysisCoverage": "Revisa la cobertura y las evidencias antes de confirmar una acción.",
+  "analysisPartial": "Análisis parcial: faltan páginas por revisar.",
+  "analysisTooLarge": "La fuente supera el límite de análisis. El original está guardado; importa una copia reducida.",
+  "analysisTooManyPages": "Este PDF tiene más de 10 páginas. Importa una copia con las páginas relevantes para analizarla. El original se conserva.",
+  "analysisUnreadable": "No se puede leer esta fuente. Puedes guardar los datos manualmente o importar otra copia.",
+  "analysisNetwork": "No se ha podido completar la conexión. Tu fuente sigue guardada.",
+  "analysisQuota": "Has alcanzado un límite de análisis. Los documentos y avisos existentes siguen disponibles.",
+  "analysisSession": "No hay una sesión válida para analizar. Revisa la cuenta en Ajustes.",
+  "analysisConfiguration": "El servicio de análisis no está disponible. Puedes seguir guardando y creando datos manualmente.",
+  "analysisInvalid": "No se ha podido validar el resultado. No se han creado propuestas ni avisos.",
+  "analysisIndeterminate": "No podemos confirmar si el proveedor terminó el análisis. Esta petición no se repetirá automáticamente.",
+  "analysisStale": "Este resultado ya no corresponde a la cuenta o fuente actual.",
+  "analysisNewRequestTitle": "¿Iniciar otro análisis?",
+  "analysisNewRequestBody": "Se enviará otra petición que puede consumir un análisis de tu cuota. Se conservarán los datos corregidos y las acciones ya aceptadas.",
+  "analysisContextOmitted": "El texto acompañante se conserva en el asunto; este análisis revisa solo el archivo.",
+  "analysisUncertainty": "Dato incierto",
+  "analysisReviewTitle": "Título propuesto",
+  "analysisNoActions": "No se han propuesto acciones. Guardar sin fecha sigue siendo válido.",
+  "reviewAction": "Revisar propuesta",
+  "remindAction": "Recordar",
+  "eventAction": "Añadir al calendario",
+  "keepAction": "Solo guardar",
+  "confirmAction": "Confirmar",
+  "chooseDate": "Elegir fecha",
+  "chooseTime": "Elegir hora",
+  "timeZone": "Zona horaria",
+  "startDate": "Fecha de inicio",
+  "endDate": "Fecha de fin",
+  "startTime": "Hora de inicio",
+  "endTime": "Hora de fin",
+  "allDay": "Todo el día",
+  "endDateExclusive": "La fecha de fin no está incluida.",
+  "locationOptional": "Lugar (opcional)",
+  "confirmTemporal": "Comprueba fecha, hora y zona. Una fecha detectada no crea un aviso por sí sola.",
+  "invalidTemporal": "Completa los datos temporales con una zona válida y un intervalo correcto.",
+  "nonexistentTime": "Esa hora no existe en la zona elegida por el cambio horario. Elige otra.",
+  "ambiguousTime": "Esa hora ocurre dos veces. Elige cuál corresponde.",
+  "sameDate": "Ese día",
+  "dayBefore": "Un día antes",
+  "weekBefore": "Una semana antes",
+  "monthBefore": "Un mes natural antes",
+  "monthClamped": "Se ha ajustado al último día del mes.",
+  "reminderScheduled": "Aviso programado en este dispositivo.",
+  "reminderNotScheduled": "Aviso guardado, pero no programado en este dispositivo. Revisa el permiso o la capacidad de avisos.",
+  "calendarSaved": "Evento guardado en el calendario.",
+  "calendarOpened": "Calendario abierto. Kipto no puede confirmar si guardaste el evento.",
+  "calendarCancelled": "No se ha guardado ningún evento.",
+  "calendarUnavailable": "No se puede abrir el calendario en este dispositivo.",
+  "keepExplained": "Conserva el documento sin crear fechas. Si no hay avisos futuros, se descartarán las otras propuestas y el asunto pasará a Archivo.",
+  "keptResult": "Documento conservado. Los avisos que ya existían no se han cancelado.",
+  "dismissProposal": "Descartar propuesta",
+  "proposedAction": "Por confirmar",
+  "acceptedAction": "Confirmado",
+  "reopenCalendar": "Volver a abrir calendario",
+  "reopenCalendarBody": "Puede que el evento ya exista. Comprueba el calendario antes de crear otra copia.",
+  "resolveMatter": "Resolver asunto",
+  "reopenMatter": "Volver a Pendientes",
+  "archiveMatter": "Archivar asunto",
+  "archiveReminderBody": "Archivar cancelará los avisos futuros de este asunto. No se eliminará ningún evento del calendario.",
+  "resolveReminderBody": "Resolver cancelará los avisos pendientes y conservará el documento en Archivo. Deshacer reprogramará solo los avisos futuros válidos.",
+  "editMatter": "Editar título y resumen",
+  "matterTitle": "Título",
+  "matterSummary": "Resumen",
+  "actionTitle": "Título de la acción",
+  "savedChange": "Cambios guardados",
+  "lifecycleFailed": "No se ha completado la operación. Revisa el estado guardado y los permisos de avisos antes de repetir.",
+  "undo": "Deshacer",
+  "viewEvidence": "Ver fuente de este dato",
+  "pendingReminder": "Aviso pendiente",
+  "completedReminder": "Aviso cancelado o completado",
+  "cancelReminder": "Cancelar aviso",
+  "cancelReminderBody": "Se cancelará este aviso. El asunto seguirá en Pendientes.",
+  "noReminderCreated": "Guardar no crea ningún aviso.",
+  "factValue": "Valor",
+  "rawDate": "Texto de la fecha",
+  "currency": "Moneda (opcional)",
+  "durationCount": "Cantidad",
+  "durationUnit": "Unidad",
+  "calendarDayUnit": "Días naturales",
+  "calendarMonthUnit": "Meses naturales",
+  "clearDate": "Fecha sin confirmar",
+  "clearTime": "Hora sin confirmar",
+  "factCorrectionBody": "La corrección conserva la extracción original y su evidencia. No cambia avisos ya confirmados.",
+  "reviewGroup": "Por revisar",
+  "datedGroup": "Con fecha",
+  "otherGroup": "Otros asuntos",
+  "sourceLocal": "Original en este dispositivo",
+  "sourceMissing": "Original no disponible en este dispositivo",
+  "reimportSource": "Importar otra copia",
+  "searchResultCount": "Resultados",
+  "backupConsent": "Copia de originales",
+  "backupConsentBody": "Con Kipto Pro, sube originales a tu copia privada (hasta 1 GiB). Requiere sincronizar sus metadatos. Al desactivarlo se conservan las copias ya subidas.",
+  "backupPending": "{count} archivos pendientes de transferencia",
+  "@backupPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupReady": "Copia de seguridad confirmada",
+  "backupTransfer": "Transferidos {sent} de {total} bytes; pendiente de confirmar",
+  "@backupTransfer": {
+    "placeholders": {
+      "sent": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProRequired": "Las nuevas copias requieren Kipto Pro. Tu original sigue en este dispositivo.",
+  "downloadBackup": "Descargar copia, si está disponible",
+  "signOutWarning": "Se retirará la biblioteca de este dispositivo. Hay {changes} asuntos con cambios pendientes y {originals} originales cuya copia no está confirmada aquí. Puedes cancelar y exportarlos antes de salir.",
+  "@signOutWarning": {
+    "placeholders": {
+      "changes": {
+        "type": "int"
+      },
+      "originals": {
+        "type": "int"
+      }
+    }
+  },
+  "proHeadline": "Más ayuda.\nTodo a mano.",
+  "proBody": "Amplía los análisis y guarda una copia privada de tus originales.",
+  "proAnalysis": "100 análisis al mes",
+  "proBackup": "Hasta 1 GiB de originales",
+  "proVerified": "Kipto Pro confirmado por el servidor",
+  "freePlan": "Plan gratuito · 5 análisis al mes",
+  "billingUnavailable": "Las compras aún no están disponibles. Puedes seguir guardando y creando avisos manuales.",
+  "paymentPending": "La tienda está esperando la aprobación del pago.",
+  "purchaseVerificationPending": "Compra recibida por la tienda. Los límites se ampliarán cuando el servidor confirme tus derechos.",
+  "monthlyPlan": "Mensual",
+  "annualPlan": "Anual",
+  "subscriptionTerms": "Suscripción con renovación automática por el periodo indicado. Consulta el importe y las condiciones finales en la tienda antes de confirmar. Guardar, consultar y tus avisos existentes siguen disponibles si cancelas.",
+  "restorePurchases": "Restaurar compras",
+  "restorePurchaseBody": "Compras consultadas. Restaurar compras no recupera los documentos de otra cuenta.",
+  "manageSubscription": "Gestionar suscripción",
+  "noSubscription": "No hay una suscripción activa para gestionar.",
+  "refreshStatus": "Actualizar estado",
+  "privacy": "Privacidad",
+  "terms": "Condiciones",
+  "exportData": "Exportar",
+  "exportBody": "Prepara un ZIP con los datos seleccionados y los originales disponibles. Si faltan archivos, puedes cancelar y descargarlos desde el detalle antes de exportar.",
+  "exportComplete": "Se han incluido todos los originales seleccionados.",
+  "exportMissing": "Faltan {count} originales. El manifiesto indica cuáles.",
+  "saveExport": "Guardar o compartir ZIP",
+  "deleteMatter": "Eliminar asunto",
+  "deleteMatterBody": "Se eliminará el asunto y sus fuentes, y se cancelarán sus avisos. La eliminación de copias remotas puede quedar pendiente hasta recuperar la conexión. No se puede deshacer.",
+  "deletePending": "La eliminación se ha solicitado. Hay pasos pendientes; revisa las transferencias en Ajustes.",
+  "@exportMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccount": "Eliminar cuenta",
+  "deleteAccountBody": "Se eliminarán tu cuenta, los datos y las copias de originales de Kipto. Exporta primero lo que quieras conservar. No se puede deshacer. La suscripción de la tienda no se cancela automáticamente: puedes gestionarla en Kipto Pro antes de continuar, pero no es un requisito para borrar.",
+  "accountDeleted": "Cuenta eliminada",
+  "accountDeletionPending": "Eliminación en curso",
+  "accountDeletionWait": "Las nuevas transferencias están bloqueadas. Si había una subida en curso, la eliminación esperará hasta cinco minutos para no dejar archivos sueltos. Puedes reintentarlo con conexión; la solicitud se conserva si cierras la app.",
+  "notificationsThisDevice": "Avisos en este dispositivo",
+  "notificationsDevicesBody": "Si activas avisos en dos dispositivos, ambos pueden notificar. El permiso del sistema también debe estar activado.",
+  "notificationTitles": "Incluir título en los avisos",
+  "notificationTitlesBody": "Por defecto solo se muestra que tienes un asunto pendiente. Actívalo para mostrar el título, también en la pantalla bloqueada.",
+  "returnToSource": "Volver a la app de origen",
+  "deleteSource": "Borrar fuente",
+  "deleteSourceBody": "Se borrarán este original y sus datos extraídos, y se cancelarán los avisos relacionados. El asunto se conserva. Esta acción no se puede deshacer.",
+  "loading": "Cargando…"
+}

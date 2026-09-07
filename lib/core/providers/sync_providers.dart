@@ -1,3 +1,4 @@
+import 'package:kipto/features/settings/application/privacy_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kipto/core/auth/auth_repository.dart';
 import 'package:kipto/core/auth/kipto_auth_state.dart';
@@ -36,6 +37,7 @@ final remoteDataSourceProvider = Provider<KiptoRemoteDataSource?>((ref) {
 
 final syncServiceProvider = Provider<SyncService>((ref) {
   final service = SyncService(
+    canSync: () => ref.read(privacyPreferencesProvider).sync,
     database: ref.watch(appDatabaseProvider),
     auth: ref.watch(authRepositoryProvider),
     remote: ref.watch(remoteDataSourceProvider),

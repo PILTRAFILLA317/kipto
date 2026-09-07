@@ -31,7 +31,12 @@ final class DriftRemindersRepository implements RemindersRepository {
   @override
   Stream<List<Reminder>> watchForItem(String itemId) => _database.remindersDao
       .watchForItem(itemId)
-      .map((rows) => rows.map(_fromRow).toList());
+      .map(
+        (rows) => rows
+            .where((row) => row.ownerId == _syncCoordinator.activeOwnerId)
+            .map(_fromRow)
+            .toList(),
+      );
 
   @override
   Future<Reminder?> findById(String id, {bool includeDeleted = false}) async {
@@ -39,7 +44,9 @@ final class DriftRemindersRepository implements RemindersRepository {
       id,
       includeDeleted: includeDeleted,
     );
-    return row == null ? null : _fromRow(row);
+    return row == null || row.ownerId != _syncCoordinator.activeOwnerId
+        ? null
+        : _fromRow(row);
   }
 
   @override
@@ -50,7 +57,9 @@ final class DriftRemindersRepository implements RemindersRepository {
     final now = _now;
     final id = _uuid.v4();
     final item = await _database.itemsDao.findById(itemId);
-    if (item == null) throw StateError('Cannot remind for a missing item');
+    if (item == null || item.ownerId != _syncCoordinator.activeOwnerId) {
+      throw StateError('Cannot remind for an unavailable item');
+    }
     final ownerId = _syncCoordinator.activeOwnerId;
     final syncStatus = ownerId == null
         ? SyncStatus.localOnly
@@ -95,12 +104,22 @@ final class DriftRemindersRepository implements RemindersRepository {
   Future<void> _mutate(String id, RemindersCompanion changes) async {
     final existing = await _database.remindersDao.findById(id);
     if (existing == null) return;
+    if (existing.ownerId != _syncCoordinator.activeOwnerId) {
+      throw StateError("Reminder belongs to another account");
+    }
+    final observed = _now;
+    final mutationTime = observed.isAfter(existing.updatedAt)
+        ? observed
+        : existing.updatedAt.add(const Duration(microseconds: 1));
     final syncable = _syncCoordinator.canSyncOwner(existing.ownerId);
     await _database.transaction(() async {
+      if (existing.ownerId != _syncCoordinator.activeOwnerId) {
+        throw StateError("Account changed");
+      }
       await _database.remindersDao.updateFields(
         id,
         changes.copyWith(
-          updatedAt: Value(_now),
+          updatedAt: Value(mutationTime),
           syncStatus: Value(
             syncable ? SyncStatus.pendingUpdate : existing.syncStatus,
           ),
@@ -124,6 +143,9 @@ final class DriftRemindersRepository implements RemindersRepository {
     id: row.id,
     ownerId: row.ownerId,
     itemId: row.itemId,
+    actionId: row.actionId,
+    title: row.title,
+    timeZone: row.timeZone,
     remindAt: row.remindAt.toUtc(),
     completedAt: row.completedAt?.toUtc(),
     createdAt: row.createdAt.toUtc(),

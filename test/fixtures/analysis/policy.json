@@ -1,0 +1,66 @@
+{
+  "textPages": [
+    {
+      "page": 1,
+      "text": "La renovación es el 03/03/2027. Preaviso: un mes natural."
+    }
+  ],
+  "output": {
+    "schemaVersion": 1,
+    "sourceRevision": 1,
+    "documentLabel": "Póliza",
+    "title": "Revisar póliza",
+    "summary": "La renovación es el 03/03/2027. Preaviso: un mes natural.",
+    "coverage": {
+      "isPartial": false,
+      "analyzedPages": [
+        1
+      ]
+    },
+    "facts": [
+      {
+        "key": "f1",
+        "type": "renewal_date",
+        "valueType": "date",
+        "value": {
+          "date": "2027-03-03",
+          "raw": "03/03/2027"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "La renovación es el 03/03/2027. Preaviso: un mes natural."
+        },
+        "uncertainty": null
+      },
+      {
+        "key": "f2",
+        "type": "notice_period",
+        "valueType": "duration",
+        "value": {
+          "count": 1,
+          "unit": "calendarMonth"
+        },
+        "evidence": {
+          "page": 1,
+          "quote": "Preaviso: un mes natural."
+        },
+        "uncertainty": null
+      }
+    ],
+    "suggestions": [
+      {
+        "key": "a1",
+        "kind": "remind",
+        "title": "Revisar póliza",
+        "relatedFactKeys": [
+          "f1",
+          "f2"
+        ],
+        "anchorFactKey": "f1",
+        "needsUserInput": [],
+        "reason": "Decide qué quieres hacer y confirma los datos."
+      }
+    ],
+    "warnings": []
+  }
+}

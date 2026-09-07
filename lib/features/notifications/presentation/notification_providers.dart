@@ -1,5 +1,10 @@
+import 'dart:ui';
+
+import 'notification_preferences.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kipto/core/providers/database_provider.dart';
+import 'package:kipto/core/providers/sync_providers.dart';
 import 'package:kipto/features/notifications/application/device_time_zone_service.dart';
 import 'package:kipto/features/notifications/application/notification_gateway.dart';
 import 'package:kipto/features/notifications/application/notification_route_resolver.dart';
@@ -16,11 +21,17 @@ final deviceTimeZoneServiceProvider = Provider<DeviceTimeZoneService>(
 );
 
 final notificationMappingStoreProvider = Provider<NotificationMappingStore>(
-  (ref) => NotificationMappingStore(ref.watch(appDatabaseProvider)),
+  (ref) => NotificationMappingStore(
+    ref.watch(appDatabaseProvider),
+    currentOwner: () => ref.read(authRepositoryProvider).userId,
+  ),
 );
 
 final notificationRouteResolverProvider = Provider<NotificationRouteResolver>(
-  (ref) => NotificationRouteResolver(ref.watch(appDatabaseProvider)),
+  (ref) => NotificationRouteResolver(
+    ref.watch(appDatabaseProvider),
+    currentOwner: () => ref.read(authRepositoryProvider).userId,
+  ),
 );
 
 final reminderNotificationSchedulerProvider =
@@ -29,6 +40,13 @@ final reminderNotificationSchedulerProvider =
         gateway: ref.watch(notificationGatewayProvider),
         mappings: ref.watch(notificationMappingStoreProvider),
         timeZones: ref.watch(deviceTimeZoneServiceProvider),
+        enabled: () => ref.read(notificationPreferencesProvider).enabled,
+        includeTitle: () =>
+            ref.read(notificationPreferencesProvider).includeTitle,
+        discreetBody: () =>
+            PlatformDispatcher.instance.locale.languageCode == 'es'
+            ? 'Tienes un asunto pendiente.'
+            : 'An item needs your attention.',
       ),
     );
 

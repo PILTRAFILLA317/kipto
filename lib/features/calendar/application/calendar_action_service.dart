@@ -11,6 +11,7 @@ final class CalendarEventDraft {
     this.location,
     this.notes,
     this.url,
+    this.timeZone,
   });
 
   final String title;
@@ -20,6 +21,7 @@ final class CalendarEventDraft {
   final String? location;
   final String? notes;
   final Uri? url;
+  final String? timeZone;
 
   Map<String, Object?> toPlatformArguments() => {
     'title': title,
@@ -29,6 +31,7 @@ final class CalendarEventDraft {
     'location': location,
     'notes': notes,
     'url': url?.toString(),
+    'timeZone': timeZone,
   };
 }
 

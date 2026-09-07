@@ -99,7 +99,7 @@ class KiptoGlassSurface extends StatelessWidget {
     final content = DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh.withValues(
-          alpha: dark ? 0.72 : 0.82,
+          alpha: blur ? (dark ? 0.88 : 0.94) : 1,
         ),
         borderRadius: borderRadius,
         border: Border.all(
@@ -164,7 +164,7 @@ class _KiptoPressableState extends State<KiptoPressable> {
     final content = AnimatedScale(
       duration: reduceMotion ? Duration.zero : AppDurations.fast,
       curve: Curves.easeOutCubic,
-      scale: _pressed && widget.onTap != null ? 0.982 : 1,
+      scale: _pressed && widget.onTap != null ? 0.975 : 1,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -207,10 +207,10 @@ class KiptoIconButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: KiptoGlassSurface(
-        blur: true,
+        blur: false,
         shadow: false,
         child: SizedBox.square(
-          dimension: 44,
+          dimension: 48,
           child: KiptoPressable(
             onTap: onPressed,
             semanticLabel: tooltip,
@@ -247,9 +247,11 @@ class KiptoPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final child = AnimatedContainer(
-      duration: AppDurations.normal,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : AppDurations.normal,
       curve: Curves.easeOutCubic,
-      constraints: const BoxConstraints(minHeight: 32),
+      constraints: BoxConstraints(minHeight: onTap == null ? 32 : 48),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: selected
@@ -292,11 +294,13 @@ class KiptoPill extends StatelessWidget {
       ),
     );
     if (onTap == null) return child;
-    return KiptoPressable(
-      onTap: onTap,
-      semanticLabel: label,
-      borderRadius: BorderRadius.circular(AppRadii.pill),
-      child: child,
+    return Semantics(
+      selected: selected,
+      child: KiptoPressable(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        child: child,
+      ),
     );
   }
 }
@@ -593,6 +597,82 @@ class KiptoStateView extends StatelessWidget {
   );
 }
 
+/// Brief success feedback; callers own the confirmed operation and its label.
+class KiptoSuccessMark extends StatelessWidget {
+  const KiptoSuccessMark({super.key, this.color});
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    return ExcludeSemantics(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: reduced ? 1 : 0, end: 1),
+        duration: reduced ? Duration.zero : AppDurations.slow,
+        curve: Curves.easeOutCubic,
+        builder: (context, progress, _) => CustomPaint(
+          size: const Size.square(24),
+          painter: _SuccessMarkPainter(
+            progress,
+            color ?? Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SuccessMarkPainter extends CustomPainter {
+  const _SuccessMarkPainter(this.progress, this.color);
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawCircle(
+      size.center(Offset.zero),
+      size.shortestSide / 2 - 1,
+      paint,
+    );
+    final path = Path()
+      ..moveTo(size.width * .25, size.height * .51)
+      ..lineTo(size.width * .44, size.height * .69)
+      ..lineTo(size.width * .76, size.height * .34);
+    final metric = path.computeMetrics().single;
+    canvas.drawPath(metric.extractPath(0, metric.length * progress), paint);
+  }
+
+  @override
+  bool shouldRepaint(_SuccessMarkPainter oldDelegate) =>
+      progress != oldDelegate.progress || color != oldDelegate.color;
+}
+
+/// Indeterminate work stays labelled without a loop when motion is reduced.
+class KiptoProgress extends StatelessWidget {
+  const KiptoProgress({super.key, required this.label, this.linear = false});
+  final String label;
+  final bool linear;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    label: label,
+    child: ExcludeSemantics(
+      child: MediaQuery.disableAnimationsOf(context)
+          ? Text(label)
+          : linear
+          ? const LinearProgressIndicator()
+          : const CircularProgressIndicator(),
+    ),
+  );
+}
+
 class KiptoSkeleton extends StatelessWidget {
   const KiptoSkeleton({
     super.key,
@@ -709,14 +789,18 @@ class _KiptoNavItem extends StatelessWidget {
       semanticLabel: destination.label,
       borderRadius: BorderRadius.circular(AppRadii.md),
       child: AnimatedContainer(
-        duration: AppDurations.normal,
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : AppDurations.normal,
         curve: Curves.easeOutCubic,
         margin: const EdgeInsets.symmetric(horizontal: 2),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
-              duration: AppDurations.normal,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : AppDurations.normal,
               curve: Curves.easeOutCubic,
               width: 38,
               height: 29,

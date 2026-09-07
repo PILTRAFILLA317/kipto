@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,18 +7,57 @@ import 'package:kipto/core/database/app_database.dart';
 import 'package:kipto/core/repositories/drift_items_repository.dart';
 import 'package:kipto/core/repositories/drift_reminders_repository.dart';
 import 'package:kipto/core/sync/local_sync_coordinator.dart';
-import 'package:kipto/features/notifications/application/device_time_zone_service.dart';
-import 'package:kipto/features/notifications/application/notification_gateway.dart';
 import 'package:kipto/features/notifications/application/reminder_notification_scheduler.dart';
 import 'package:kipto/features/notifications/data/notification_mapping_store.dart';
 import 'package:kipto/features/notifications/domain/notification_models.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
-import 'package:timezone/timezone.dart' as tz;
 
 import 'test_support.dart';
+import 'notification_test_support.dart';
 
 void main() {
   setUpAll(tz_data.initializeTimeZones);
+
+  test(
+    'Clearing a projection waits for an older OS scheduling request',
+    () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final now = DateTime.utc(2026, 9, 5);
+      final coordinator = LocalSyncCoordinator(
+        database: db,
+        auth: TestAuthRepository(),
+        onLocalChange: () {},
+      );
+      final item = await DriftItemsRepository(
+        db,
+        syncCoordinator: coordinator,
+      ).create(title: 'Synthetic');
+      await DriftRemindersRepository(
+        db,
+        syncCoordinator: coordinator,
+        onChanged: () async {},
+      ).create(itemId: item.id, remindAt: now.add(const Duration(days: 1)));
+      final gateway = TestNotificationGateway()
+        ..scheduleEntered = Completer<void>()
+        ..scheduleRelease = Completer<void>();
+      final mappings = NotificationMappingStore(db);
+      final scheduler = ReminderNotificationScheduler(
+        gateway: gateway,
+        mappings: mappings,
+        timeZones: const TestTimeZones(),
+        clock: Clock.fixed(now),
+      );
+      final old = scheduler.reconcile();
+      await gateway.scheduleEntered!.future;
+      final cleanup = scheduler.clearLocalProjection();
+      final concurrent = scheduler.reconcile();
+      gateway.scheduleRelease!.complete();
+      await Future.wait([old, cleanup, concurrent]);
+      expect(gateway.scheduled, isEmpty);
+      expect(await mappings.list(), isEmpty);
+    },
+  );
 
   test(
     'notification reconciliation follows the reminder item_id relationship',
@@ -46,11 +87,11 @@ void main() {
         itemId: item.id,
         remindAt: now.add(const Duration(hours: 2)),
       );
-      final gateway = _Gateway();
+      final gateway = TestNotificationGateway();
       final scheduler = ReminderNotificationScheduler(
         gateway: gateway,
         mappings: NotificationMappingStore(database),
-        timeZones: const _UtcTimeZones(),
+        timeZones: const TestTimeZones(),
         clock: Clock.fixed(now),
       );
 
@@ -64,41 +105,4 @@ void main() {
       expect(payload?.reminderId, reminder.id);
     },
   );
-}
-
-final class _Gateway implements ReminderNotificationGateway {
-  final List<String> payloads = [];
-
-  @override
-  Future<void> cancel(int id) async {}
-  @override
-  Future<String?> initialize(NotificationPayloadCallback onPayload) async =>
-      null;
-  @override
-  Future<void> openSettings() async {}
-  @override
-  Future<NotificationPermissionStatus> permissionStatus() async =>
-      NotificationPermissionStatus.granted;
-  @override
-  Future<NotificationPermissionStatus> requestPermission() =>
-      permissionStatus();
-  @override
-  Future<void> schedule({
-    required int id,
-    required tz.TZDateTime at,
-    required String title,
-    required String body,
-    required String payload,
-  }) async => payloads.add(payload);
-  @override
-  Future<void> showTest() async {}
-}
-
-final class _UtcTimeZones implements DeviceTimeZoneService {
-  const _UtcTimeZones();
-
-  @override
-  Future<String> currentIdentifier() async => 'UTC';
-  @override
-  tz.Location locationFor(String identifier) => tz.UTC;
 }

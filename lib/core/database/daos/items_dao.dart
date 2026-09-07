@@ -19,6 +19,12 @@ class ItemsDao extends DatabaseAccessor<AppDatabase> with _$ItemsDaoMixin {
             ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]))
           .watch();
 
+  Stream<List<ItemRow>> watchAll() =>
+      (select(items)
+            ..where((row) => row.deletedAt.isNull())
+            ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]))
+          .watch();
+
   Future<ItemRow?> findById(String id, {bool includeDeleted = false}) {
     final query = select(items)..where((row) => row.id.equals(id));
     if (!includeDeleted) query.where((row) => row.deletedAt.isNull());
